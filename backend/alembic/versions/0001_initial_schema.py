@@ -31,10 +31,15 @@ tipo_veiculo_enum = postgresql.ENUM("carro", "moto", "outro", name="tipo_veiculo
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-    role_enum.create(bind, checkfirst=True)
-    tipo_veiculo_enum.create(bind, checkfirst=True)
-
+    # NAO criar os tipos ENUM manualmente aqui: cada um é referenciado em
+    # exatamente uma Column abaixo (role_enum em usuarios.role,
+    # tipo_veiculo_enum em veiculos.tipo), e o SQLAlchemy já cria o tipo
+    # automaticamente (uma única vez, via evento before_create) quando
+    # create_table roda. Chamar `.create(bind, checkfirst=True)` aqui ANTES
+    # disso causava "DuplicateObject: type ... already exists", porque a
+    # criação automática do create_table não reconhece que esse mesmo tipo
+    # já foi criado por uma chamada manual separada (bug encontrado só ao
+    # rodar a migration de verdade contra um Postgres real).
     # --- usuarios (sem a FK de unidade_id ainda) ---
     op.create_table(
         "usuarios",

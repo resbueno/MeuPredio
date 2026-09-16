@@ -1,6 +1,6 @@
 """trigger de imutabilidade em logs_auditoria (bloqueia UPDATE/DELETE)
 
-Revision ID: 0002_audit_log_immutability_trigger
+Revision ID: 0002_audit_immutability_trigger
 Revises: 0001_initial_schema
 Create Date: 2026-09-16
 
@@ -8,6 +8,13 @@ Esta migration é o coração do requisito de auditoria imutável: mesmo que a
 camada de aplicação seja comprometida (bug, acesso direto ao banco com a
 credencial da app, etc.), o PostgreSQL em si recusa qualquer UPDATE ou DELETE
 em `logs_auditoria`. Só é possível inserir novas linhas.
+
+Nota: o id da revisão precisa caber em `alembic_version.version_num`, que é
+VARCHAR(32) por padrão — "0002_audit_log_immutability_trigger" (36 chars)
+estourava esse limite e derrubava a migration com
+`StringDataRightTruncation` só no UPDATE final da versão (bug encontrado ao
+rodar de verdade contra um Postgres real, não em revisão manual do código).
+"0002_audit_immutability_trigger" tem 31 chars, cabe.
 """
 from __future__ import annotations
 
@@ -16,7 +23,7 @@ from typing import Sequence, Union
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "0002_audit_log_immutability_trigger"
+revision: str = "0002_audit_immutability_trigger"
 down_revision: Union[str, None] = "0001_initial_schema"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
