@@ -1,0 +1,91 @@
+# Compose de DEPLOY na VPS de homologação compartilhada com o SIGA — NÃO é o
+# mesmo arquivo usado em dev local (esse é o docker-compose.yml da raiz do
+# repositório, que publica portas no host para uso isolado na máquina do
+# desenvolvedor). Diferenças deliberadas aqui, para não colidir com o SIGA:
+#
+#   - Nenhum serviço publica porta no host (`ports:`) — tudo só é alcançável
+#     pela rede Docker interna `siga_siga_net`, do mesmo jeito que os
+#     containers do SIGA já funcionam nessa VPS.
+#   - Entra na rede externa `siga_siga_net` (criada pelo compose do SIGA em
+#     ~/siga) em vez de criar uma rede própria isolada.
+#   - `mem_limit`/`cpus` em cada serviço, no mesmo padrão dos containers do
+#     SIGA (ver ~/siga/docker-compose.yml) — a VPS tem só 3.3GB de RAM.
+#   - Frontend vira build estático servido por nginx (Dockerfile.prod), não o
+#     dev server do Vite.
+#   - `meupredio_nginx` é o único ponto de entrada do projeto: o gateway
+#     compartilhado (~/gateway) faz proxy_pass só para ele — ver
+#     infra/vps/README.md para o bloco de configuração a acrescentar lá.
+#
+# Ver docs/setup.md para o compose de dev local.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: meupredio_db
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:-meupredio}
+    volumes:
+      - meupredio_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-meupredio}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - siga_ext
+
+  backend:
+    build:
+      context: ../../backend
+    container_name: meupredio_backend
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m app.scripts.seed_admin &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-meupredio}
+      SECRET_KEY: ${SECRET_KEY:?defina SECRET_KEY no .env}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-https://rbbrdev.duckdns.org}
+      FIRST_ADMIN_EMAIL: ${FIRST_ADMIN_EMAIL:-}
+      FIRST_ADMIN_PASSWORD: ${FIRST_ADMIN_PASSWORD:-}
+      FIRST_ADMIN_FULL_NAME: ${FIRST_ADMIN_FULL_NAME:-Administrador MeuPredio}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - siga_ext
+
+  nginx:
+    build:
+      context: ../..
+      dockerfile: frontend/Dockerfile.prod
+      args:
+        VITE_BASE_PATH: /meupredio/
+        VITE_API_URL: /meupredio
+    container_name: meupredio_nginx
+    restart: unless-stopped
+    mem_limit: 64m
+    cpus: 0.5
+    depends_on:
+      - backend
+    networks:
+      - siga_ext
+
+networks:
+  siga_ext:
+    external: true
+    name: siga_siga_net
+
+volumes:
+  meupredio_pgdata:
