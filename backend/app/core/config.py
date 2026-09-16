@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field, field_validator
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -52,13 +52,10 @@ class Settings(BaseSettings):
     FIRST_ADMIN_PASSWORD: str | None = None
     FIRST_ADMIN_FULL_NAME: str = "Administrador"
 
-    @field_validator("SECRET_KEY")
-    @classmethod
-    def secret_key_must_be_set_outside_tests(cls, v: str) -> str:
-        # Em ambiente de teste, conftest.py injeta uma SECRET_KEY dedicada via
-        # variável de ambiente antes de importar as settings, então chegamos
-        # aqui apenas quando de fato falta configurar o segredo.
-        return v
+    # A validação de que SECRET_KEY foi de fato configurada (fora de testes)
+    # acontece em get_settings() abaixo, não aqui — precisa rodar depois que
+    # o valor é carregado do ambiente, e deve ser pulada quando
+    # ENVIRONMENT=test (conftest.py injeta uma SECRET_KEY dedicada de teste).
 
     @property
     def cors_origins_list(self) -> list[str]:
