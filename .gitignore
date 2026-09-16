@@ -31,6 +31,7 @@ frontend/dev-dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.tsbuildinfo
 
 # === PostgreSQL data (docker volume bind, se usado) ===
 pgdata/
