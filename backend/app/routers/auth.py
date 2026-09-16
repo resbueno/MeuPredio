@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import registrar_log
 from app.core.dependencies import get_db
-from app.core.security import create_access_token, verify_password
+from app.core.security import create_access_token, verify_password_constant_time
 from app.models.usuario import Usuario
 from app.schemas.auth import Token
 
@@ -22,6 +22,16 @@ def login(
     db: Session = Depends(get_db),
 ) -> Token:
     user = db.query(Usuario).filter(Usuario.email == form_data.username).first()
+    usuario_elegivel = user is not None and not user.is_deleted
+
+    # Executa a verificação de senha (com seu custo computacional Argon2)
+    # SEMPRE, mesmo quando o e-mail não existe — contra um hash "morto" nesse
+    # caso — para que o tempo de resposta não revele se o e-mail está
+    # cadastrado (mitigação de user enumeration por timing side-channel).
+    senha_confere = verify_password_constant_time(
+        form_data.password,
+        user.hashed_password if usuario_elegivel else None,
+    )
 
     # Mensagem de erro genérica de propósito: não revela se o problema foi o
     # e-mail não encontrado ou a senha incorreta (evita "user enumeration").
@@ -31,9 +41,7 @@ def login(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    if user is None or user.is_deleted:
-        raise invalid_credentials
-    if not verify_password(form_data.password, user.hashed_password):
+    if not usuario_elegivel or not senha_confere:
         raise invalid_credentials
     if not user.is_active:
         raise HTTPException(

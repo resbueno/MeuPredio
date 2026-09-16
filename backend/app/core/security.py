@@ -28,6 +28,26 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return _pwd_context.verify(plain_password, hashed_password)
 
 
+# Hash "morto" (sem senha real correspondente) usado apenas para equalizar o
+# tempo de resposta do login quando o e-mail informado não existe. Sem isso,
+# um atacante poderia medir o tempo de resposta para distinguir "e-mail não
+# cadastrado" (retorno imediato) de "e-mail cadastrado, senha errada"
+# (retorno após o custo computacional do Argon2) — um side-channel clássico
+# de user enumeration.
+_DUMMY_HASH = _pwd_context.hash("senha-que-nunca-existe-usada-so-para-equalizar-tempo-de-resposta")
+
+
+def verify_password_constant_time(plain_password: str, hashed_password: str | None) -> bool:
+    """Como `verify_password`, mas tolera `hashed_password=None` (usuário
+    inexistente): nesse caso verifica contra `_DUMMY_HASH` mesmo assim, para
+    que o custo computacional (e portanto o tempo de resposta) seja o mesmo
+    independente de o e-mail existir ou não. Sempre retorna False quando
+    `hashed_password` é None."""
+    is_real_user = hashed_password is not None
+    result = _pwd_context.verify(plain_password, hashed_password or _DUMMY_HASH)
+    return result and is_real_user
+
+
 def create_access_token(*, subject: str, role: str, extra_claims: dict[str, Any] | None = None) -> str:
     """Gera um JWT assinado (HS256 por padrão) com a role embutida no payload.
 
