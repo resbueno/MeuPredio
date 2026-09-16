@@ -19,5 +19,53 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: ./backend
+    container_name: meupredio-backend
+    restart: unless-stopped
+    # Aplica as migrations, garante o admin inicial (idempotente) e só então
+    # sobe o servidor com reload — sequência segura para "docker compose up"
+    # a partir de um banco zerado.
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m app.scripts.seed_admin &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-meupredio}:${POSTGRES_PASSWORD:-troque-esta-senha-local}@db:5432/${POSTGRES_DB:-meupredio}
+      DATABASE_URL_TEST: postgresql+psycopg://${POSTGRES_USER:-meupredio}:${POSTGRES_PASSWORD:-troque-esta-senha-local}@db:5432/${POSTGRES_DB_TEST:-meupredio_test}
+      SECRET_KEY: ${SECRET_KEY:?defina SECRET_KEY no .env antes de subir o backend}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      FIRST_ADMIN_EMAIL: ${FIRST_ADMIN_EMAIL:-}
+      FIRST_ADMIN_PASSWORD: ${FIRST_ADMIN_PASSWORD:-}
+      FIRST_ADMIN_FULL_NAME: ${FIRST_ADMIN_FULL_NAME:-Administrador MeuPredio}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: meupredio-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+    depends_on:
+      - backend
+
 volumes:
   pgdata:
