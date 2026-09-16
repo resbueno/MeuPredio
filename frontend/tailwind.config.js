@@ -4,18 +4,21 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Extraído da logo oficial (logo_meu_predio.jpg): azul do prédio em
+        // destaque (~#1961ed) e navy escuro dos prédios ao fundo (~#050b1f).
         brand: {
-          50: "#eef2ff",
-          100: "#e0e7ff",
-          200: "#c7d2fe",
-          300: "#a5b4fc",
-          400: "#818cf8",
-          500: "#6366f1",
-          600: "#4f46e5",
-          700: "#4338ca",
-          800: "#3730a3",
-          900: "#312e81",
+          50: "#f4f7fe",
+          100: "#e3ecfd",
+          200: "#c3d6fa",
+          300: "#9ab9f7",
+          400: "#6394f3",
+          500: "#3574ef",
+          600: "#1961ed",
+          700: "#1349b3",
+          800: "#0e327c",
+          900: "#091c48",
         },
+        ink: "#050b1f",
       },
     },
   },

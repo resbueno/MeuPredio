@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import type { RoleEnum } from "../../api/types";
+import logoIcon from "../../assets/logo-icon.png";
 
 interface NavItem {
   to: string;
@@ -33,12 +34,17 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-col bg-slate-50">
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="flex items-center justify-between px-4 py-3">
-          <span className="text-lg font-bold text-brand-700">MeuPrédio</span>
+          <div className="flex items-center gap-2">
+            <img src={logoIcon} alt="" className="h-8 w-auto" />
+            <span className="text-lg font-bold tracking-tight text-ink">
+              Meu<span className="text-brand-600">Prédio</span>
+            </span>
+          </div>
           {user && (
             <button
               type="button"
               onClick={handleSignOut}
-              className="text-sm font-medium text-slate-500 hover:text-slate-800"
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
             >
               Sair
             </button>
