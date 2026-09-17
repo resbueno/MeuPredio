@@ -48,10 +48,23 @@ class UsuarioUpdate(BaseModel):
 
 
 class UsuarioRead(BaseModel):
+    """Schema de LEITURA: `email` aqui é `str`, não `EmailStr`, de propósito.
+
+    `EmailStr` (via email-validator) rejeita domínios "special-use" (.local,
+    .invalid, .test, .example, RFC 6761/2606) mesmo em modo leitura — isso já
+    causou um 500 (ResponseValidationError) em produção/homologação com o
+    e-mail do admin semeado (admin@meupredio.local) e quebra a própria rota
+    de anonimização LGPD, que grava deliberadamente
+    `anonimizado-{id}@meupredio.invalid`. Validar de novo no READ um dado que
+    já foi validado (ou gerado pelo próprio sistema) no CREATE não tem
+    utilidade e só cria uma superfície de 500 fora do nosso controle. A
+    validação estrita continua em `UsuarioBase.email` (Create/Update), onde
+    de fato importa rejeitar entrada nova inválida."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    email: EmailStr
+    email: str
     full_name: str
     role: RoleEnum
     unidade_id: int | None

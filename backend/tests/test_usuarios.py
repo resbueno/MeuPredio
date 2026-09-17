@@ -37,7 +37,7 @@ def test_administrador_cria_usuario_com_sucesso_e_gera_auditoria(client, db_sess
     response = client.post(
         "/usuarios",
         json={
-            "email": "morador.novo@test.local",
+            "email": "morador.novo@test.dev",
             "full_name": "Morador Novo",
             "role": "morador",
             "password": "Senha1234",
@@ -46,11 +46,11 @@ def test_administrador_cria_usuario_com_sucesso_e_gera_auditoria(client, db_sess
     )
     assert response.status_code == 201
     body = response.json()
-    assert body["email"] == "morador.novo@test.local"
+    assert body["email"] == "morador.novo@test.dev"
     assert "password" not in body
     assert "hashed_password" not in body
 
-    criado = db_session.query(Usuario).filter(Usuario.email == "morador.novo@test.local").one()
+    criado = db_session.query(Usuario).filter(Usuario.email == "morador.novo@test.dev").one()
     log = (
         db_session.query(LogAuditoria)
         .filter(
@@ -70,7 +70,7 @@ def test_sindico_nao_pode_criar_administrador(client, db_session):
     response = client.post(
         "/usuarios",
         json={
-            "email": "outroadmin@test.local",
+            "email": "outroadmin@test.dev",
             "full_name": "Outro Admin",
             "role": "administrador",
             "password": "Senha1234",
