@@ -15,3 +15,13 @@ class TipoVeiculoEnum(str, enum.Enum):
     CARRO = "carro"
     MOTO = "moto"
     OUTRO = "outro"
+
+
+class StatusDespesaEnum(str, enum.Enum):
+    """Status de um lançamento de despesa. 'Atrasado' não é um status
+    persistido — é derivado (pendente + data_vencimento no passado) para
+    nunca ficar dessincronizado do relógio atual (ver `DespesaLancamento.esta_atrasada`)."""
+
+    PENDENTE = "pendente"
+    PAGO = "pago"
+    CANCELADO = "cancelado"

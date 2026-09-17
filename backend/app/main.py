@@ -4,14 +4,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.routers import auth, health, unidades, usuarios, veiculos
+from app.routers import auth, despesas, fornecedores, health, unidades, usuarios, veiculos
 
 settings = get_settings()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    version="0.1.0",
-    description="API da Fase 1 do MeuPredio (usuarios, unidades, veiculos, auditoria).",
+    version="0.2.0",
+    description=(
+        "API do MeuPredio - Fase 1 (usuarios, unidades, veiculos, auditoria) "
+        "e inicio da Fase 2 (fornecedores e lancamentos de despesa)."
+    ),
 )
 
 app.add_middleware(
@@ -27,3 +30,5 @@ app.include_router(auth.router)
 app.include_router(usuarios.router)
 app.include_router(unidades.router)
 app.include_router(veiculos.router)
+app.include_router(fornecedores.router)
+app.include_router(despesas.router)
