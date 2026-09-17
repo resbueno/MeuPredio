@@ -24,6 +24,29 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 settings = get_settings()
 TEST_DATABASE_URL = settings.sqlalchemy_database_url_test
 
+# Cinto e suspensório: um bug em alembic/env.py já fez uma vez a migration de
+# teste (que faz `downgrade` até a base no teardown) rodar contra o banco de
+# produção/homologação de verdade, apagando dados reais - env.py ignorava a
+# URL que configuramos aqui e sempre usava settings.DATABASE_URL. Corrigido
+# lá, mas a suíte de testes nunca deve sequer TENTAR um downgrade destrutivo
+# a menos que a URL resolvida aponte claramente para um banco de teste
+# (mesma URL base do banco "de verdade" = provavelmente o mesmo bug de novo,
+# ou um DATABASE_URL_TEST mal configurado apontando para o banco errado).
+if TEST_DATABASE_URL == settings.DATABASE_URL:
+    raise RuntimeError(
+        "TEST_DATABASE_URL resolveu para o MESMO banco que DATABASE_URL "
+        "(producao/homologacao). A suite de testes faz DROP de todo o "
+        "schema no teardown - abortando para nao repetir o incidente de "
+        "perda de dados ja causado por isso. Configure DATABASE_URL_TEST "
+        "para um banco de teste dedicado e distinto."
+    )
+if "test" not in TEST_DATABASE_URL.rsplit("/", 1)[-1]:
+    raise RuntimeError(
+        f"O nome do banco de teste resolvido ({TEST_DATABASE_URL.rsplit('/', 1)[-1]!r}) "
+        "nao contem 'test' - abortando por seguranca antes de rodar migrations "
+        "destrutivas nele. Ver incidente documentado acima."
+    )
+
 
 @pytest.fixture(scope="session")
 def _migrated_test_db():

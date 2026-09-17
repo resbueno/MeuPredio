@@ -18,7 +18,15 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# So aplica o default de settings.DATABASE_URL se quem chamou o Alembic (CLI
+# `alembic upgrade`, ou testes via AlembicConfig.set_main_option) NAO tiver
+# passado uma URL explicita. Sobrescrever incondicionalmente aqui ja causou
+# um incidente real: a suite de testes configura sqlalchemy.url para o banco
+# de teste isolado, mas essa linha ignorava isso e forcava DATABASE_URL de
+# producao/homologacao - o "downgrade" de teardown dos testes rodou contra o
+# banco real e apagou os dados de homologacao.
+if not config.get_main_option("sqlalchemy.url"):
+    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 target_metadata = Base.metadata
 
