@@ -13,6 +13,14 @@ export async function createDespesa(input: DespesaCreateInput): Promise<DespesaL
   return data;
 }
 
+export async function updateDespesa(
+  id: number,
+  input: Partial<DespesaCreateInput>
+): Promise<DespesaLancamento> {
+  const { data } = await apiClient.patch<DespesaLancamento>(`/despesas/${id}`, input);
+  return data;
+}
+
 export async function registrarPagamento(id: number): Promise<DespesaLancamento> {
   const { data } = await apiClient.post<DespesaLancamento>(`/despesas/${id}/pagar`, {});
   return data;

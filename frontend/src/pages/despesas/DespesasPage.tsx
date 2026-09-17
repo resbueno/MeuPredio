@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { AppShell } from "../../components/layout/AppShell";
@@ -12,13 +12,19 @@ import {
   extrairBoleto,
   listDespesas,
   registrarPagamento,
+  updateDespesa,
 } from "../../api/despesas";
 import {
   configurarIntegracaoOcr,
   obterIntegracaoOcr,
   removerIntegracaoOcr,
 } from "../../api/predios";
-import type { DespesaLancamento, ExtracaoBoleto, StatusDespesaEnum } from "../../api/types";
+import type {
+  DespesaCreateInput,
+  DespesaLancamento,
+  ExtracaoBoleto,
+  StatusDespesaEnum,
+} from "../../api/types";
 
 const despesaSchema = z.object({
   descricao: z.string().min(2, "Informe a descricao."),
@@ -174,6 +180,7 @@ export function DespesasPage() {
 
   const [documentoUrl, setDocumentoUrl] = useState<string | null>(null);
   const [avisoExtracao, setAvisoExtracao] = useState<string | null>(null);
+  const [editing, setEditing] = useState<DespesaLancamento | null>(null);
 
   const { data: despesas, isLoading } = useQuery({
     queryKey: ["despesas", souAdministrador ? predioIdAdmin : "proprio"],
@@ -194,10 +201,26 @@ export function DespesasPage() {
     reset(FORM_VAZIO);
     setDocumentoUrl(null);
     setAvisoExtracao(null);
+    setEditing(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   }
+
+  useEffect(() => {
+    if (!editing) {
+      return;
+    }
+    reset({
+      descricao: editing.descricao,
+      categoria: editing.categoria,
+      valor: editing.valor,
+      data_vencimento: editing.data_vencimento,
+      observacoes: editing.observacoes ?? "",
+    });
+    setDocumentoUrl(editing.documento_url);
+    setAvisoExtracao(null);
+  }, [editing, reset]);
 
   const invalidateDespesas = () => queryClient.invalidateQueries({ queryKey: ["despesas"] });
 
@@ -225,6 +248,15 @@ export function DespesasPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, input }: { id: number; input: Partial<DespesaCreateInput> }) =>
+      updateDespesa(id, input),
+    onSuccess: () => {
+      invalidateDespesas();
+      limparFormulario();
+    },
+  });
+
   const pagarMutation = useMutation({ mutationFn: registrarPagamento, onSuccess: invalidateDespesas });
   const cancelarMutation = useMutation({ mutationFn: cancelarDespesa, onSuccess: invalidateDespesas });
 
@@ -246,15 +278,19 @@ export function DespesasPage() {
     if (souAdministrador && !predioIdAdmin) {
       return;
     }
-    createMutation.mutate({
+    const campos = {
       descricao: values.descricao,
       categoria: values.categoria,
       valor: values.valor.replace(",", "."),
       data_vencimento: values.data_vencimento,
       observacoes: values.observacoes || null,
       documento_url: documentoUrl,
-      predio_id: souAdministrador ? predioIdAdmin : undefined,
-    });
+    };
+    if (editing) {
+      updateMutation.mutate({ id: editing.id, input: campos });
+      return;
+    }
+    createMutation.mutate({ ...campos, predio_id: souAdministrador ? predioIdAdmin : undefined });
   }
 
   const bloqueadoSemPredio = souAdministrador && !predioIdAdmin;
@@ -282,11 +318,15 @@ export function DespesasPage() {
       {predioIdEfetivo != null && <IntegracaoOcrPanel predioId={predioIdEfetivo} />}
 
       <div className="mb-6 space-y-3 rounded-2xl bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-700">Subir uma conta</h2>
+        <h2 className="text-sm font-semibold text-slate-700">
+          {editing ? `Editar conta #${editing.id}` : "Subir uma conta"}
+        </h2>
 
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">
-            Foto ou PDF do boleto (opcional - a IA preenche o formulario abaixo)
+            {editing
+              ? "Trocar foto ou PDF do boleto (opcional)"
+              : "Foto ou PDF do boleto (opcional - a IA preenche o formulario abaixo)"}
           </label>
           <input
             ref={fileInputRef}
@@ -302,7 +342,9 @@ export function DespesasPage() {
           {avisoExtracao && <p className="mt-1 text-xs text-amber-600">{avisoExtracao}</p>}
           {documentoUrl && !extrairMutation.isPending && (
             <p className="mt-1 text-xs text-emerald-600">
-              Dados extraidos - revise os campos abaixo antes de salvar.
+              {editing
+                ? "Documento anexado - revise os campos abaixo antes de salvar."
+                : "Dados extraidos - revise os campos abaixo antes de salvar."}
             </p>
           )}
         </div>
@@ -374,7 +416,7 @@ export function DespesasPage() {
             />
           </div>
 
-          {createMutation.isError && (
+          {(createMutation.isError || updateMutation.isError) && (
             <p className="text-sm text-red-600">
               Nao foi possivel salvar a conta. Verifique os dados e tente novamente.
             </p>
@@ -389,14 +431,14 @@ export function DespesasPage() {
               disabled={isSubmitting || bloqueadoSemPredio}
               className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
             >
-              Salvar conta
+              {editing ? "Salvar alteracoes" : "Salvar conta"}
             </button>
             <button
               type="button"
               onClick={limparFormulario}
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600"
             >
-              Limpar
+              {editing ? "Cancelar edicao" : "Limpar"}
             </button>
           </div>
         </form>
@@ -426,6 +468,13 @@ export function DespesasPage() {
               <p className="text-sm font-semibold text-slate-700">{formatarValor(despesa.valor)}</p>
               {despesa.status === "pendente" && (
                 <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditing(despesa)}
+                    className="text-xs font-medium text-brand-600"
+                  >
+                    Editar
+                  </button>
                   <button
                     type="button"
                     onClick={() => pagarMutation.mutate(despesa.id)}
