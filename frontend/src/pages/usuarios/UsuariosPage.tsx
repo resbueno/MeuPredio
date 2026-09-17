@@ -14,20 +14,31 @@ import {
 } from "../../api/usuarios";
 import type { RoleEnum, Usuario, UsuarioCreateInput, UsuarioUpdateInput } from "../../api/types";
 
-const ROLES: RoleEnum[] = ["morador", "sindico", "zelador", "administrador"];
+const ROLES: RoleEnum[] = ["morador", "proprietario", "sindico", "zelador", "administrador"];
 
 const ROLE_LABELS: Record<RoleEnum, string> = {
   morador: "Morador",
+  proprietario: "Proprietario",
   sindico: "Sindico",
   zelador: "Zelador",
   administrador: "Administrador",
 };
 
+function parseUnidadeIds(texto: string | undefined): number[] {
+  return (texto ?? "")
+    .split(",")
+    .map((parte) => parte.trim())
+    .filter(Boolean)
+    .map(Number)
+    .filter((n) => !Number.isNaN(n));
+}
+
 const usuarioSchema = z.object({
   email: z.string().min(1, "Informe o e-mail.").email("Informe um e-mail valido."),
   full_name: z.string().min(2, "Informe o nome completo."),
-  role: z.enum(["morador", "sindico", "zelador", "administrador"]),
-  unidade_id: z.string().optional(),
+  role: z.enum(["morador", "proprietario", "sindico", "zelador", "administrador"]),
+  unidade_ids: z.string().optional(),
+  predio_id: z.string().optional(),
   password: z.string().optional(),
 });
 
@@ -51,7 +62,14 @@ export function UsuariosPage() {
     formState: { errors, isSubmitting },
   } = useForm<UsuarioFormValues>({
     resolver: zodResolver(usuarioSchema),
-    defaultValues: { email: "", full_name: "", role: "morador", unidade_id: "", password: "" },
+    defaultValues: {
+      email: "",
+      full_name: "",
+      role: "morador",
+      unidade_ids: "",
+      predio_id: "",
+      password: "",
+    },
   });
 
   useEffect(() => {
@@ -60,11 +78,12 @@ export function UsuariosPage() {
         email: editing.email,
         full_name: editing.full_name,
         role: editing.role,
-        unidade_id: editing.unidade_id ? String(editing.unidade_id) : "",
+        unidade_ids: editing.unidade_ids.join(", "),
+        predio_id: editing.predio_id ? String(editing.predio_id) : "",
         password: "",
       });
     } else {
-      reset({ email: "", full_name: "", role: "morador", unidade_id: "", password: "" });
+      reset({ email: "", full_name: "", role: "morador", unidade_ids: "", predio_id: "", password: "" });
     }
   }, [editing, reset]);
 
@@ -74,7 +93,7 @@ export function UsuariosPage() {
     mutationFn: createUsuario,
     onSuccess: () => {
       invalidate();
-      reset({ email: "", full_name: "", role: "morador", unidade_id: "", password: "" });
+      reset({ email: "", full_name: "", role: "morador", unidade_ids: "", predio_id: "", password: "" });
     },
   });
 
@@ -91,13 +110,14 @@ export function UsuariosPage() {
   const anonimizarMutation = useMutation({ mutationFn: anonimizarUsuario, onSuccess: invalidate });
 
   function onSubmit(values: UsuarioFormValues): void {
-    const unidadeId = values.unidade_id?.trim();
+    const unidadeIds = parseUnidadeIds(values.unidade_ids);
+    const predioId = values.predio_id?.trim();
 
     if (editing) {
       const input: UsuarioUpdateInput = {
         full_name: values.full_name,
         role: values.role,
-        unidade_id: unidadeId ? Number(unidadeId) : null,
+        unidade_ids: values.role === "administrador" ? [] : unidadeIds,
       };
       if (values.password) {
         input.password = values.password;
@@ -113,7 +133,8 @@ export function UsuariosPage() {
       email: values.email,
       full_name: values.full_name,
       role: values.role,
-      unidade_id: unidadeId ? Number(unidadeId) : null,
+      unidade_ids: values.role === "administrador" ? [] : unidadeIds,
+      predio_id: predioId ? Number(predioId) : undefined,
       password: values.password,
     };
     createMutation.mutate(input);
@@ -172,15 +193,28 @@ export function UsuariosPage() {
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">
-              ID da unidade (opcional)
+              ID(s) da(s) unidade(s)
+            </label>
+            <input
+              placeholder="Ex.: 12, 13"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              {...register("unidade_ids")}
+            />
+          </div>
+        </div>
+
+        {souAdministrador && !editing && (
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              ID do predio (obrigatorio quando o papel nao e administrador)
             </label>
             <input
               inputMode="numeric"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              {...register("unidade_id")}
+              {...register("predio_id")}
             />
           </div>
-        </div>
+        )}
 
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">

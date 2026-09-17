@@ -12,6 +12,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Inicio" },
+  { to: "/predios", label: "Predios", roles: ["administrador"] },
   { to: "/usuarios", label: "Usuarios", roles: ["administrador", "sindico"] },
   { to: "/unidades", label: "Unidades" },
   { to: "/veiculos", label: "Veiculos" },

@@ -11,17 +11,17 @@ import type { Unidade, UnidadeInput } from "../../api/types";
 const unidadeSchema = z.object({
   bloco: z.string().min(1, "Informe o bloco."),
   numero: z.string().min(1, "Informe o numero."),
-  proprietario_id: z.string().optional(),
+  predio_id: z.string().optional(),
 });
 
 type UnidadeFormValues = z.infer<typeof unidadeSchema>;
 
 function toUnidadeInput(values: UnidadeFormValues): UnidadeInput {
-  const proprietarioId = values.proprietario_id?.trim();
+  const predioId = values.predio_id?.trim();
   return {
     bloco: values.bloco,
     numero: values.numero,
-    proprietario_id: proprietarioId ? Number(proprietarioId) : null,
+    predio_id: predioId ? Number(predioId) : null,
   };
 }
 
@@ -29,7 +29,8 @@ export function UnidadesPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Unidade | null>(null);
-  const podeGerenciar = user?.role === "administrador" || user?.role === "sindico";
+  const souAdministrador = user?.role === "administrador";
+  const podeGerenciar = souAdministrador || user?.role === "sindico";
 
   const { data: unidades, isLoading } = useQuery({
     queryKey: ["unidades"],
@@ -43,18 +44,14 @@ export function UnidadesPage() {
     formState: { errors, isSubmitting },
   } = useForm<UnidadeFormValues>({
     resolver: zodResolver(unidadeSchema),
-    defaultValues: { bloco: "", numero: "", proprietario_id: "" },
+    defaultValues: { bloco: "", numero: "", predio_id: "" },
   });
 
   useEffect(() => {
     if (editing) {
-      reset({
-        bloco: editing.bloco,
-        numero: editing.numero,
-        proprietario_id: editing.proprietario_id ? String(editing.proprietario_id) : "",
-      });
+      reset({ bloco: editing.bloco, numero: editing.numero, predio_id: String(editing.predio_id) });
     } else {
-      reset({ bloco: "", numero: "", proprietario_id: "" });
+      reset({ bloco: "", numero: "", predio_id: "" });
     }
   }, [editing, reset]);
 
@@ -64,12 +61,13 @@ export function UnidadesPage() {
     mutationFn: createUnidade,
     onSuccess: () => {
       invalidate();
-      reset({ bloco: "", numero: "", proprietario_id: "" });
+      reset({ bloco: "", numero: "", predio_id: "" });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, input }: { id: number; input: UnidadeInput }) => updateUnidade(id, input),
+    mutationFn: ({ id, input }: { id: number; input: Partial<UnidadeInput> }) =>
+      updateUnidade(id, input),
     onSuccess: () => {
       invalidate();
       setEditing(null);
@@ -82,12 +80,11 @@ export function UnidadesPage() {
   });
 
   function onSubmit(values: UnidadeFormValues): void {
-    const input = toUnidadeInput(values);
     if (editing) {
-      updateMutation.mutate({ id: editing.id, input });
-    } else {
-      createMutation.mutate(input);
+      updateMutation.mutate({ id: editing.id, input: { bloco: values.bloco, numero: values.numero } });
+      return;
     }
+    createMutation.mutate(toUnidadeInput(values));
   }
 
   const erroMutacao = createMutation.error ?? updateMutation.error;
@@ -125,16 +122,21 @@ export function UnidadesPage() {
               )}
             </div>
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
-              ID do proprietario (opcional)
-            </label>
-            <input
-              inputMode="numeric"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              {...register("proprietario_id")}
-            />
-          </div>
+          {souAdministrador && !editing && (
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                ID do predio (obrigatorio para administrador)
+              </label>
+              <input
+                inputMode="numeric"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                {...register("predio_id")}
+              />
+              <p className="mt-1 text-xs text-slate-400">
+                Sindico nao precisa preencher - a unidade sempre vai para o proprio predio.
+              </p>
+            </div>
+          )}
 
           {erroMutacao && (
             <p className="text-sm text-red-600">
@@ -174,9 +176,6 @@ export function UnidadesPage() {
             <div>
               <p className="font-medium text-slate-800">
                 Bloco {unidade.bloco} - {unidade.numero}
-              </p>
-              <p className="text-xs text-slate-500">
-                Proprietario: {unidade.proprietario_id ?? "nao definido"}
               </p>
             </div>
             {podeGerenciar && (

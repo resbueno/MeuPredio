@@ -3,8 +3,10 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { Login } from "./pages/Login";
+import { Cadastro } from "./pages/Cadastro";
 import { Dashboard } from "./pages/Dashboard";
 import { UsuariosPage } from "./pages/usuarios/UsuariosPage";
+import { PrediosPage } from "./pages/predios/PrediosPage";
 import { UnidadesPage } from "./pages/unidades/UnidadesPage";
 import { VeiculosPage } from "./pages/veiculos/VeiculosPage";
 
@@ -21,11 +23,20 @@ export default function App() {
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/cadastro/:token" element={<Cadastro />} />
             <Route
               path="/"
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/predios"
+              element={
+                <ProtectedRoute allowedRoles={["administrador"]}>
+                  <PrediosPage />
                 </ProtectedRoute>
               }
             />

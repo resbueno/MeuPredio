@@ -14,7 +14,7 @@ interface JwtPayload {
 interface AuthContextValue {
   user: Usuario | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, predioId: number | null) => Promise<void>;
   signOut: () => void;
 }
 
@@ -42,8 +42,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
 
-  async function signIn(email: string, password: string): Promise<void> {
-    const { access_token } = await apiLogin(email, password);
+  async function signIn(email: string, password: string, predioId: number | null): Promise<void> {
+    const { access_token } = await apiLogin(email, password, predioId);
     setStoredToken(access_token);
     const payload = decodeJwtPayload<JwtPayload>(access_token);
     if (!payload) {

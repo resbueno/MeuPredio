@@ -1,4 +1,4 @@
-export type RoleEnum = "morador" | "sindico" | "zelador" | "administrador";
+export type RoleEnum = "morador" | "proprietario" | "sindico" | "zelador" | "administrador";
 export type TipoVeiculoEnum = "carro" | "moto" | "outro";
 
 export interface Usuario {
@@ -6,7 +6,8 @@ export interface Usuario {
   email: string;
   full_name: string;
   role: RoleEnum;
-  unidade_id: number | null;
+  predio_id: number | null;
+  unidade_ids: number[];
   is_active: boolean;
   consent_lgpd_accepted_at: string | null;
   last_login_at: string | null;
@@ -20,23 +21,24 @@ export interface UsuarioCreateInput {
   email: string;
   full_name: string;
   role: RoleEnum;
-  unidade_id?: number | null;
+  unidade_ids?: number[];
+  predio_id?: number | null;
   password: string;
 }
 
 export interface UsuarioUpdateInput {
   full_name?: string;
   role?: RoleEnum;
-  unidade_id?: number | null;
+  unidade_ids?: number[];
   is_active?: boolean;
   password?: string;
 }
 
 export interface Unidade {
   id: number;
+  predio_id: number;
   bloco: string;
   numero: string;
-  proprietario_id: number | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -45,7 +47,7 @@ export interface Unidade {
 export interface UnidadeInput {
   bloco: string;
   numero: string;
-  proprietario_id?: number | null;
+  predio_id?: number | null;
 }
 
 export interface Veiculo {
@@ -66,4 +68,57 @@ export interface VeiculoInput {
   modelo: string;
   cor: string;
   tipo: TipoVeiculoEnum;
+}
+
+export interface Predio {
+  id: number;
+  nome: string;
+  cep: string;
+  numero: string;
+  complemento: string | null;
+  logradouro: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface PredioCreateInput {
+  nome: string;
+  cep: string;
+  numero: string;
+  complemento?: string | null;
+  unidades?: { bloco: string; numero: string }[];
+}
+
+export interface PredioIdentificado {
+  id: number;
+  nome: string;
+  cidade: string | null;
+  uf: string | null;
+}
+
+export interface PredioConvite {
+  id: number;
+  predio_id: number;
+  token: string;
+  ativo: boolean;
+  expira_em: string | null;
+  esta_valido: boolean;
+}
+
+export interface PredioConviteInfo {
+  predio_nome: string;
+  predio_id: number;
+  unidades: { id: number; bloco: string; numero: string }[];
+}
+
+export interface CadastroViaConviteInput {
+  email: string;
+  password: string;
+  full_name: string;
+  role: "morador" | "proprietario";
+  unidade_ids: number[];
 }
