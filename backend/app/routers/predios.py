@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.audit import model_to_audit_dict, registrar_log
+from app.core.crypto import encrypt_secret
 from app.core.dependencies import get_db, require_role
 from app.core.security import hash_password
 from app.core.viacep import (
@@ -27,6 +28,8 @@ from app.schemas.predio import (
     PredioCreate,
     PredioIdentificarRequest,
     PredioIdentificarResponse,
+    PredioIntegracaoOcrRequest,
+    PredioIntegracaoOcrStatus,
     PredioRead,
     UnidadeConviteInfo,
 )
@@ -215,6 +218,89 @@ def revogar_convite(
             ip_origem=_client_ip(request),
             user_agent=request.headers.get("user-agent"),
         )
+    db.commit()
+    return None
+
+
+def _autorizar_gestor_do_predio(current_user: Usuario, predio: Predio) -> None:
+    if current_user.role == RoleEnum.SINDICO and current_user.predio_id != predio.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Voce so pode gerenciar o proprio predio.",
+        )
+
+
+@router.put("/predios/{predio_id}/integracao-ocr", response_model=PredioIntegracaoOcrStatus)
+def configurar_integracao_ocr(
+    predio_id: int,
+    payload: PredioIntegracaoOcrRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SINDICO)),
+) -> PredioIntegracaoOcrStatus:
+    """Configura a chave de API do Groq usada no OCR de boletos deste
+    prédio - deve ser uma chave de uma conta do próprio condomínio (cada
+    prédio usa/paga sua própria cota), nunca uma chave global do sistema.
+    A chave nunca é registrada em texto plano (nem no banco, nem no log de
+    auditoria - ver `_CAMPOS_SENSIVEIS` em app/core/audit.py)."""
+    predio = _predio_ou_404(db, predio_id)
+    _autorizar_gestor_do_predio(current_user, predio)
+
+    predio.groq_api_key_cifrada = encrypt_secret(payload.groq_api_key)
+    db.add(predio)
+    db.flush()
+
+    registrar_log(
+        db,
+        usuario_id=current_user.id,
+        acao="UPDATE",
+        entidade="predios",
+        entidade_id=predio.id,
+        dados_depois={"groq_api_key_configurada": True},
+        ip_origem=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.commit()
+    return PredioIntegracaoOcrStatus(configurado=True)
+
+
+@router.get("/predios/{predio_id}/integracao-ocr", response_model=PredioIntegracaoOcrStatus)
+def obter_integracao_ocr(
+    predio_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SINDICO)),
+) -> PredioIntegracaoOcrStatus:
+    predio = _predio_ou_404(db, predio_id)
+    _autorizar_gestor_do_predio(current_user, predio)
+    return PredioIntegracaoOcrStatus(configurado=predio.groq_api_key_cifrada is not None)
+
+
+@router.delete("/predios/{predio_id}/integracao-ocr", status_code=status.HTTP_204_NO_CONTENT)
+def remover_integracao_ocr(
+    predio_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SINDICO)),
+) -> None:
+    predio = _predio_ou_404(db, predio_id)
+    _autorizar_gestor_do_predio(current_user, predio)
+    if predio.groq_api_key_cifrada is None:
+        return None
+
+    predio.groq_api_key_cifrada = None
+    db.add(predio)
+    db.flush()
+
+    registrar_log(
+        db,
+        usuario_id=current_user.id,
+        acao="UPDATE",
+        entidade="predios",
+        entidade_id=predio.id,
+        dados_depois={"groq_api_key_configurada": False},
+        ip_origem=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
     db.commit()
     return None
 

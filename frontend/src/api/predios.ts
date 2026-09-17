@@ -6,6 +6,7 @@ import type {
   PredioConviteInfo,
   PredioCreateInput,
   PredioIdentificado,
+  PredioIntegracaoOcrStatus,
   Usuario,
 } from "./types";
 
@@ -44,4 +45,26 @@ export async function cadastrarViaConvite(
 ): Promise<Usuario> {
   const { data } = await apiClient.post<Usuario>(`/predios/convite/${token}/cadastro`, input);
   return data;
+}
+
+export async function obterIntegracaoOcr(predioId: number): Promise<PredioIntegracaoOcrStatus> {
+  const { data } = await apiClient.get<PredioIntegracaoOcrStatus>(
+    `/predios/${predioId}/integracao-ocr`
+  );
+  return data;
+}
+
+export async function configurarIntegracaoOcr(
+  predioId: number,
+  groqApiKey: string
+): Promise<PredioIntegracaoOcrStatus> {
+  const { data } = await apiClient.put<PredioIntegracaoOcrStatus>(
+    `/predios/${predioId}/integracao-ocr`,
+    { groq_api_key: groqApiKey }
+  );
+  return data;
+}
+
+export async function removerIntegracaoOcr(predioId: number): Promise<void> {
+  await apiClient.delete(`/predios/${predioId}/integracao-ocr`);
 }

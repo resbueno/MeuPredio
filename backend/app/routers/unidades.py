@@ -53,6 +53,7 @@ def criar_unidade(
         predio_id=predio_id,
         bloco=payload.bloco,
         numero=payload.numero,
+        fracao_ideal=payload.fracao_ideal,
         created_by=current_user.id,
     )
     db.add(unidade)
@@ -131,6 +132,8 @@ def atualizar_unidade(
         unidade.bloco = campos_enviados["bloco"]
     if "numero" in campos_enviados:
         unidade.numero = campos_enviados["numero"]
+    if "fracao_ideal" in campos_enviados:
+        unidade.fracao_ideal = campos_enviados["fracao_ideal"]
 
     db.add(unidade)
     try:

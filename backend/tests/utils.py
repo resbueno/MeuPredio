@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import itertools
+from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
@@ -39,8 +40,15 @@ def make_predio(db: Session, *, nome: str = "Predio de Teste", cep: str | None =
     return predio
 
 
-def make_unidade(db: Session, predio: Predio, *, bloco: str = "A", numero: str = "101") -> Unidade:
-    unidade = Unidade(predio_id=predio.id, bloco=bloco, numero=numero)
+def make_unidade(
+    db: Session,
+    predio: Predio,
+    *,
+    bloco: str = "A",
+    numero: str = "101",
+    fracao_ideal: Decimal | None = None,
+) -> Unidade:
+    unidade = Unidade(predio_id=predio.id, bloco=bloco, numero=numero, fracao_ideal=fracao_ideal)
     db.add(unidade)
     db.commit()
     db.refresh(unidade)

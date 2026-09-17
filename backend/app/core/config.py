@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     FIRST_ADMIN_PASSWORD: str | None = None
     FIRST_ADMIN_FULL_NAME: str = "Administrador"
 
+    # --- Armazenamento de documentos enviados para OCR (ver core/storage.py) ---
+    # Em produção/homologação deve apontar para um volume Docker persistente,
+    # não o filesystem efêmero do container (ver docker-compose.yml).
+    UPLOADS_DIR: str = "uploads"
+
     # A validação de que SECRET_KEY foi de fato configurada (fora de testes)
     # acontece em get_settings() abaixo, não aqui — precisa rodar depois que
     # o valor é carregado do ambiente, e deve ser pulada quando

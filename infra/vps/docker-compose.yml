@@ -60,6 +60,9 @@ services:
       FIRST_ADMIN_EMAIL: ${FIRST_ADMIN_EMAIL:-}
       FIRST_ADMIN_PASSWORD: ${FIRST_ADMIN_PASSWORD:-}
       FIRST_ADMIN_FULL_NAME: ${FIRST_ADMIN_FULL_NAME:-Administrador MeuPredio}
+      UPLOADS_DIR: /app/uploads
+    volumes:
+      - meupredio_uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -89,3 +92,4 @@ networks:
 
 volumes:
   meupredio_pgdata:
+  meupredio_uploads:

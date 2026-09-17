@@ -6,6 +6,7 @@
 *.key
 
 # === Python / Backend ===
+backend/uploads/
 __pycache__/
 *.py[cod]
 *$py.class

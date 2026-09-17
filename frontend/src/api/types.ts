@@ -122,3 +122,60 @@ export interface CadastroViaConviteInput {
   role: "morador" | "proprietario";
   unidade_ids: number[];
 }
+
+export interface PredioIntegracaoOcrStatus {
+  configurado: boolean;
+}
+
+export type StatusDespesaEnum = "pendente" | "pago" | "cancelado";
+export type CriterioRateioEnum = "igual" | "fracao_ideal";
+
+export interface RateioDespesaItem {
+  id: number;
+  despesa_lancamento_id: number;
+  unidade_id: number;
+  valor: string;
+  criterio: CriterioRateioEnum;
+  created_at: string;
+}
+
+export interface DespesaLancamento {
+  id: number;
+  predio_id: number;
+  fornecedor_id: number | null;
+  descricao: string;
+  categoria: string;
+  valor: string;
+  data_vencimento: string;
+  data_pagamento: string | null;
+  status: StatusDespesaEnum;
+  esta_atrasada: boolean;
+  documento_url: string | null;
+  observacoes: string | null;
+  rateado_em: string | null;
+  itens_rateio: RateioDespesaItem[];
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface DespesaCreateInput {
+  descricao: string;
+  categoria: string;
+  valor: string;
+  data_vencimento: string;
+  observacoes?: string | null;
+  documento_url?: string | null;
+  predio_id?: number | null;
+}
+
+export interface ExtracaoBoleto {
+  documento_url: string;
+  fornecedor_nome: string | null;
+  fornecedor_documento: string | null;
+  valor: string | null;
+  data_vencimento: string | null;
+  linha_digitavel: string | null;
+  descricao_sugerida: string | null;
+  categoria_sugerida: string | null;
+}

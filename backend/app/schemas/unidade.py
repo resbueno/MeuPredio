@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -15,11 +16,15 @@ class UnidadeCreate(UnidadeBase):
     # Qualquer outro criador tem o prédio forçado para o seu próprio pelo
     # router - nunca confia em predio_id vindo do cliente.
     predio_id: int | None = None
+    # Peso usado pelo motor de rateio quando o critério é "fracao_ideal" -
+    # ver Unidade.fracao_ideal.
+    fracao_ideal: Decimal | None = Field(default=None, gt=0, max_digits=9, decimal_places=6)
 
 
 class UnidadeUpdate(BaseModel):
     bloco: str | None = Field(default=None, min_length=1, max_length=20)
     numero: str | None = Field(default=None, min_length=1, max_length=20)
+    fracao_ideal: Decimal | None = Field(default=None, gt=0, max_digits=9, decimal_places=6)
 
 
 class UnidadeRead(BaseModel):
@@ -29,6 +34,7 @@ class UnidadeRead(BaseModel):
     predio_id: int
     bloco: str
     numero: str
+    fracao_ideal: Decimal | None
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None

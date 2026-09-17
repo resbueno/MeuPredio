@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.models.log_auditoria import LogAuditoria
 
 # Campos que nunca devem ir para o log de auditoria, mesmo em texto cifrado/hash.
-_CAMPOS_SENSIVEIS = {"hashed_password"}
+_CAMPOS_SENSIVEIS = {"hashed_password", "groq_api_key_cifrada"}
 
 
 def model_to_audit_dict(obj: Any, *, exclude: set[str] | None = None) -> dict[str, Any]:

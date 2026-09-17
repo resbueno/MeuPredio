@@ -42,11 +42,13 @@ services:
       FIRST_ADMIN_EMAIL: ${FIRST_ADMIN_EMAIL:-}
       FIRST_ADMIN_PASSWORD: ${FIRST_ADMIN_PASSWORD:-}
       FIRST_ADMIN_FULL_NAME: ${FIRST_ADMIN_FULL_NAME:-Administrador MeuPredio}
+      UPLOADS_DIR: /app/uploads
     ports:
       - "8000:8000"
     volumes:
       - ./backend/app:/app/app
       - ./backend/alembic:/app/alembic
+      - uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -69,3 +71,4 @@ services:
 
 volumes:
   pgdata:
+  uploads:

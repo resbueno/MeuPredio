@@ -7,6 +7,7 @@ from app.models.fornecedor import Fornecedor  # noqa: F401
 from app.models.log_auditoria import LogAuditoria  # noqa: F401
 from app.models.predio import Predio  # noqa: F401
 from app.models.predio_convite import PredioConvite  # noqa: F401
+from app.models.rateio_despesa_item import RateioDespesaItem  # noqa: F401
 from app.models.unidade import Unidade  # noqa: F401
 from app.models.usuario import Usuario  # noqa: F401
 from app.models.veiculo import Veiculo  # noqa: F401
@@ -20,5 +21,6 @@ __all__ = [
     "DespesaLancamento",
     "Predio",
     "PredioConvite",
+    "RateioDespesaItem",
     "usuario_unidades",
 ]

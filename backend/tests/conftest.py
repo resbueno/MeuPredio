@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 
 # Precisa acontecer ANTES de qualquer import de app.* — garante que
@@ -8,6 +9,10 @@ from pathlib import Path
 # só para rodar a suíte de testes (ver validação em Settings/get_settings).
 os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("SECRET_KEY", "chave-de-teste-nao-usar-em-producao-" * 2)
+# Diretório descartável (fora do repo) para os uploads gerados pelos testes
+# de OCR - nunca o backend/uploads/ de verdade, e nada a limpar depois (fica
+# no temp do SO).
+os.environ.setdefault("UPLOADS_DIR", tempfile.mkdtemp(prefix="meupredio-uploads-test-"))
 
 import pytest  # noqa: E402
 from alembic import command  # noqa: E402

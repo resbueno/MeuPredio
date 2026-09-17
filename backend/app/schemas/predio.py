@@ -94,6 +94,21 @@ class PredioConviteInfo(BaseModel):
     unidades: list[UnidadeConviteInfo]
 
 
+class PredioIntegracaoOcrRequest(BaseModel):
+    """Configura a chave de API do Groq deste prédio (OCR de boletos) -
+    deve ser uma conta/chave do próprio condomínio, não uma chave global do
+    sistema (cada prédio paga/gerencia seu próprio uso)."""
+
+    groq_api_key: str = Field(min_length=10, max_length=200)
+
+
+class PredioIntegracaoOcrStatus(BaseModel):
+    """Nunca devolve a chave em si (nem cifrada, nem parcialmente) - só se
+    está configurada ou não."""
+
+    configurado: bool
+
+
 class CadastroViaConviteRequest(BaseModel):
     """Autocadastro público (`POST /predios/convite/{token}/cadastro`).
 

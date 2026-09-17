@@ -6,6 +6,7 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.enums import StatusDespesaEnum
+from app.schemas.rateio import RateioDespesaItemRead
 
 
 class DespesaLancamentoBase(BaseModel):
@@ -15,6 +16,11 @@ class DespesaLancamentoBase(BaseModel):
     valor: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     data_vencimento: date
     observacoes: str | None = None
+    # Preenchido pelo cliente com o `documento_url` devolvido por
+    # POST /despesas/ocr/extrair, quando a despesa se origina de um boleto
+    # processado por OCR - nunca aceita um valor arbitrário do cliente além
+    # disso (é só um caminho relativo, ver app/core/storage.py).
+    documento_url: str | None = Field(default=None, max_length=500)
 
 
 class DespesaLancamentoCreate(DespesaLancamentoBase):
@@ -31,6 +37,7 @@ class DespesaLancamentoUpdate(BaseModel):
     valor: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=2)
     data_vencimento: date | None = None
     observacoes: str | None = None
+    documento_url: str | None = Field(default=None, max_length=500)
 
 
 class DespesaLancamentoRegistrarPagamento(BaseModel):
@@ -55,6 +62,8 @@ class DespesaLancamentoRead(BaseModel):
     esta_atrasada: bool
     documento_url: str | None
     observacoes: str | None
+    rateado_em: datetime | None
+    itens_rateio: list[RateioDespesaItemRead] = []
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None

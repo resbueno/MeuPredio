@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String, UniqueConstraint
+from sqlalchemy import ForeignKey, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -37,6 +38,12 @@ class Unidade(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
     )
     bloco: Mapped[str] = mapped_column(String(20), nullable=False)
     numero: Mapped[str] = mapped_column(String(20), nullable=False)
+    # Peso usado pelo motor de rateio (ver despesas/ratear) quando o critério
+    # é "fracao_ideal" - não precisa somar 100 entre as unidades do prédio
+    # (o cálculo usa a fração de CADA unidade sobre a SOMA das frações
+    # ativas), mas na prática costuma refletir a fração ideal do condomínio.
+    # Nullable: nem toda unidade tem esse dado definido ainda.
+    fracao_ideal: Mapped[Decimal | None] = mapped_column(Numeric(9, 6), nullable=True)
 
     predio: Mapped["Predio"] = relationship("Predio", back_populates="unidades")
     usuarios: Mapped[list["Usuario"]] = relationship(

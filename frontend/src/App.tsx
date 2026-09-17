@@ -9,6 +9,7 @@ import { UsuariosPage } from "./pages/usuarios/UsuariosPage";
 import { PrediosPage } from "./pages/predios/PrediosPage";
 import { UnidadesPage } from "./pages/unidades/UnidadesPage";
 import { VeiculosPage } from "./pages/veiculos/VeiculosPage";
+import { DespesasPage } from "./pages/despesas/DespesasPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +62,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <VeiculosPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/despesas"
+              element={
+                <ProtectedRoute allowedRoles={["administrador", "sindico"]}>
+                  <DespesasPage />
                 </ProtectedRoute>
               }
             />

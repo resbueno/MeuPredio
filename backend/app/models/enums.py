@@ -26,3 +26,11 @@ class StatusDespesaEnum(str, enum.Enum):
     PENDENTE = "pendente"
     PAGO = "pago"
     CANCELADO = "cancelado"
+
+
+class CriterioRateioEnum(str, enum.Enum):
+    """Critério usado para dividir uma despesa entre as unidades de um
+    prédio (ver POST /despesas/{id}/ratear)."""
+
+    IGUAL = "igual"
+    FRACAO_IDEAL = "fracao_ideal"

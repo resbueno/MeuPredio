@@ -41,6 +41,10 @@ class Predio(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
     bairro: Mapped[str | None] = mapped_column(String(100), nullable=True)
     cidade: Mapped[str | None] = mapped_column(String(100), nullable=True)
     uf: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    # Chave de API do Groq deste prédio (OCR de boletos, Fase 2), cifrada
+    # em repouso via app/core/crypto.py - nunca fica em texto plano no banco
+    # nem é devolvida em nenhuma resposta da API (ver PredioIntegracaoOcrStatus).
+    groq_api_key_cifrada: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     unidades: Mapped[list["Unidade"]] = relationship("Unidade", back_populates="predio")
     usuarios: Mapped[list["Usuario"]] = relationship(

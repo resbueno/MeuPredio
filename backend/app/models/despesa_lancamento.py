@@ -4,7 +4,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, ForeignKey, Numeric, String, Text
+from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, Text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,16 +14,18 @@ from app.models.enums import StatusDespesaEnum
 
 if TYPE_CHECKING:
     from app.models.fornecedor import Fornecedor
+    from app.models.rateio_despesa_item import RateioDespesaItem
 
 
 class DespesaLancamento(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
     """Lançamento de despesa do condomínio (Despesas_Lancamentos, Fase 2).
 
-    Nesta fatia inicial do Motor Financeiro é só o registro/CRUD do
-    lançamento — ainda sem rateio entre unidades, sem OCR (Mistral AI) e sem
-    geração de remessa/retorno bancário, que ficam para as próximas fatias
-    da Fase 2. `documento_url` já existe como campo para não exigir uma
-    migration extra quando o pipeline de OCR chegar.
+    Segunda fatia do Motor Financeiro: CRUD do lançamento (fatia anterior)
+    + rateio entre unidades (`itens_rateio`, ver POST /despesas/{id}/ratear).
+    Ainda sem OCR (Mistral AI) e sem geração de remessa/retorno bancário, que
+    ficam para as próximas fatias da Fase 2. `documento_url` já existe como
+    campo para não exigir uma migration extra quando o pipeline de OCR
+    chegar.
     """
 
     __tablename__ = "despesas_lancamentos"
@@ -52,9 +54,13 @@ class DespesaLancamento(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
     )
     documento_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    rateado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     fornecedor: Mapped["Fornecedor | None"] = relationship(
         "Fornecedor", back_populates="despesas"
+    )
+    itens_rateio: Mapped[list["RateioDespesaItem"]] = relationship(
+        "RateioDespesaItem", back_populates="despesa", order_by="RateioDespesaItem.unidade_id"
     )
 
     @property
