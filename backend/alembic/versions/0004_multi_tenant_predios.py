@@ -191,6 +191,12 @@ def upgrade() -> None:
         "UPDATE fornecedores SET predio_id = (SELECT id FROM predios ORDER BY id LIMIT 1) "
         "WHERE predio_id IS NULL"
     )
+    op.execute(
+        "DO $$ BEGIN "
+        "IF EXISTS (SELECT 1 FROM fornecedores WHERE predio_id IS NULL) THEN "
+        "RAISE EXCEPTION 'Existem fornecedores sem predio para migrar - backfill manual necessario'; "
+        "END IF; END $$;"
+    )
     op.alter_column("fornecedores", "predio_id", nullable=False)
     op.create_foreign_key(
         "fk_fornecedores_predio_id", "fornecedores", "predios", ["predio_id"], ["id"], ondelete="CASCADE"
@@ -209,6 +215,12 @@ def upgrade() -> None:
     op.execute(
         "UPDATE despesas_lancamentos SET predio_id = (SELECT id FROM predios ORDER BY id LIMIT 1) "
         "WHERE predio_id IS NULL"
+    )
+    op.execute(
+        "DO $$ BEGIN "
+        "IF EXISTS (SELECT 1 FROM despesas_lancamentos WHERE predio_id IS NULL) THEN "
+        "RAISE EXCEPTION 'Existem despesas sem predio para migrar - backfill manual necessario'; "
+        "END IF; END $$;"
     )
     op.alter_column("despesas_lancamentos", "predio_id", nullable=False)
     op.create_foreign_key(
