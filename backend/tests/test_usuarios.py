@@ -6,7 +6,7 @@ from sqlalchemy.exc import DBAPIError
 from app.models.enums import RoleEnum
 from app.models.log_auditoria import LogAuditoria
 from app.models.usuario import Usuario
-from tests.utils import auth_header, make_user
+from tests.utils import auth_header, make_predio, make_unidade, make_user
 
 
 def test_criar_usuario_sem_autenticacao_retorna_401(client):
@@ -34,6 +34,8 @@ def test_morador_nao_pode_criar_outros_usuarios(client, db_session):
 
 def test_administrador_cria_usuario_com_sucesso_e_gera_auditoria(client, db_session):
     admin = make_user(db_session, email="admin1@test.local", role=RoleEnum.ADMINISTRADOR)
+    predio = make_predio(db_session)
+    unidade = make_unidade(db_session, predio)
     response = client.post(
         "/usuarios",
         json={
@@ -41,6 +43,8 @@ def test_administrador_cria_usuario_com_sucesso_e_gera_auditoria(client, db_sess
             "full_name": "Morador Novo",
             "role": "morador",
             "password": "Senha1234",
+            "predio_id": predio.id,
+            "unidade_ids": [unidade.id],
         },
         headers=auth_header(admin),
     )
@@ -205,6 +209,82 @@ def test_anonimizar_usuario_ja_anonimizado_retorna_409(client, db_session):
 
     response = client.post(f"/usuarios/{alvo.id}/anonimizar", headers=auth_header(admin))
     assert response.status_code == 409
+
+
+def test_criar_usuario_sem_unidade_retorna_422(client, db_session):
+    sindico = make_user(db_session, email="sindico3@test.local", role=RoleEnum.SINDICO)
+    response = client.post(
+        "/usuarios",
+        json={
+            "email": "semunidade@test.dev",
+            "full_name": "Sem Unidade",
+            "role": "morador",
+            "password": "Senha1234",
+        },
+        headers=auth_header(sindico),
+    )
+    assert response.status_code == 422
+
+
+def test_sindico_cria_usuario_ignora_predio_id_do_payload(client, db_session):
+    """predio_id no payload é ignorado para quem já tem prédio próprio -
+    a unidade tem que existir DENTRO do prédio do síndico, não do prédio
+    que ele tentou informar."""
+    outro_predio = make_predio(db_session)
+    outra_unidade = make_unidade(db_session, outro_predio)
+    sindico = make_user(db_session, email="sindico4@test.local", role=RoleEnum.SINDICO)
+
+    response = client.post(
+        "/usuarios",
+        json={
+            "email": "morador.x@test.dev",
+            "full_name": "Morador X",
+            "role": "morador",
+            "password": "Senha1234",
+            "predio_id": outro_predio.id,
+            "unidade_ids": [outra_unidade.id],
+        },
+        headers=auth_header(sindico),
+    )
+    # A unidade informada não pertence ao prédio do síndico (que é o que
+    # de fato vale) - 404, isolamento nunca depende do payload do cliente.
+    assert response.status_code == 404
+
+
+def test_sindico_nao_ve_usuario_de_outro_predio(client, db_session):
+    predio_a = make_predio(db_session)
+    predio_b = make_predio(db_session)
+    sindico_a = make_user(db_session, email="sindico5@test.local", role=RoleEnum.SINDICO, predio=predio_a)
+    morador_b = make_user(db_session, email="morador.b1@test.local", role=RoleEnum.MORADOR, predio=predio_b)
+
+    resposta_get = client.get(f"/usuarios/{morador_b.id}", headers=auth_header(sindico_a))
+    assert resposta_get.status_code == 404
+
+    resposta_lista = client.get("/usuarios", headers=auth_header(sindico_a))
+    ids = [u["id"] for u in resposta_lista.json()]
+    assert morador_b.id not in ids
+
+
+def test_proprietario_pode_ter_mais_de_uma_unidade(client, db_session):
+    predio = make_predio(db_session)
+    unidade1 = make_unidade(db_session, predio, bloco="A", numero="10")
+    unidade2 = make_unidade(db_session, predio, bloco="A", numero="20")
+    admin = make_user(db_session, email="admin7@test.local", role=RoleEnum.ADMINISTRADOR)
+
+    response = client.post(
+        "/usuarios",
+        json={
+            "email": "dono@test.dev",
+            "full_name": "Dono de Duas Unidades",
+            "role": "proprietario",
+            "password": "Senha1234",
+            "predio_id": predio.id,
+            "unidade_ids": [unidade1.id, unidade2.id],
+        },
+        headers=auth_header(admin),
+    )
+    assert response.status_code == 201
+    assert sorted(response.json()["unidade_ids"]) == sorted([unidade1.id, unidade2.id])
 
 
 def test_log_auditoria_e_imutavel_via_trigger_de_banco(db_session):

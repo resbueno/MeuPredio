@@ -6,6 +6,7 @@ class RoleEnum(str, enum.Enum):
     embutido no JWT — não alterar os valores sem migration correspondente."""
 
     MORADOR = "morador"
+    PROPRIETARIO = "proprietario"
     SINDICO = "sindico"
     ZELADOR = "zelador"
     ADMINISTRADOR = "administrador"

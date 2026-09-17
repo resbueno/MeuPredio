@@ -54,6 +54,25 @@ def get_current_user(
     return user
 
 
+def resolver_predio_id(current_user: Usuario, predio_id_informado: int | None) -> int:
+    """Multi-tenancy: decide qual `predio_id` vale para a operação atual.
+
+    - ADMINISTRADOR (papel global, sem prédio): PRECISA informar
+      explicitamente qual prédio, já que não tem um próprio.
+    - Qualquer outro papel: o prédio é sempre o do próprio usuário logado,
+      IGNORANDO qualquer predio_id que o cliente tente enviar - isolamento
+      entre tenants nunca pode depender de o cliente "se comportar".
+    """
+    if current_user.role == RoleEnum.ADMINISTRADOR:
+        if predio_id_informado is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Administrador precisa informar predio_id explicitamente.",
+            )
+        return predio_id_informado
+    return current_user.predio_id  # type: ignore[return-value]
+
+
 def require_role(*roles: RoleEnum):
     """Dependency factory de RBAC.
 

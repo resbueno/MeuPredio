@@ -31,8 +31,14 @@ def seed_admin() -> None:
 
     db = SessionLocal()
     try:
+        # predio_id IS NULL: e-mail só é globalmente único entre
+        # administradores (ver CheckConstraint/índices parciais em
+        # Usuario) - sem esse filtro, poderíamos "encontrar" por engano um
+        # morador/síndico de algum prédio com o mesmo e-mail coincidente.
         existing = (
-            db.query(Usuario).filter(Usuario.email == settings.FIRST_ADMIN_EMAIL).first()
+            db.query(Usuario)
+            .filter(Usuario.email == settings.FIRST_ADMIN_EMAIL, Usuario.predio_id.is_(None))
+            .first()
         )
         if existing is not None:
             print(f"Usuario administrador '{settings.FIRST_ADMIN_EMAIL}' ja existe. Nada a fazer.")

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.models.enums import RoleEnum
 
@@ -11,11 +11,27 @@ class UsuarioBase(BaseModel):
     email: EmailStr
     full_name: str = Field(min_length=2, max_length=255)
     role: RoleEnum = RoleEnum.MORADOR
-    unidade_id: int | None = None
+    unidade_ids: list[int] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _exigir_unidade_exceto_administrador(self) -> "UsuarioBase":
+        if self.role != RoleEnum.ADMINISTRADOR and not self.unidade_ids:
+            raise ValueError(
+                "Todo usuario (exceto administrador) deve estar vinculado a pelo menos uma unidade."
+            )
+        if self.role == RoleEnum.ADMINISTRADOR and self.unidade_ids:
+            raise ValueError("Administrador e um papel global e nao pode estar vinculado a unidades.")
+        return self
 
 
 class UsuarioCreate(UsuarioBase):
     password: str = Field(min_length=8, max_length=128)
+    # Só usado quando quem cria é o ADMINISTRADOR (sem prédio próprio) e
+    # precisa dizer para qual prédio este usuário vai. Para qualquer outro
+    # criador (síndico, p.ex.), o router ignora este campo e força o prédio
+    # do próprio criador — nunca confia em predio_id vindo do cliente para
+    # decidir isolamento entre tenants.
+    predio_id: int | None = None
 
     @field_validator("password")
     @classmethod
@@ -33,7 +49,7 @@ class UsuarioUpdate(BaseModel):
 
     full_name: str | None = Field(default=None, min_length=2, max_length=255)
     role: RoleEnum | None = None
-    unidade_id: int | None = None
+    unidade_ids: list[int] | None = None
     is_active: bool | None = None
     password: str | None = Field(default=None, min_length=8, max_length=128)
 
@@ -67,7 +83,8 @@ class UsuarioRead(BaseModel):
     email: str
     full_name: str
     role: RoleEnum
-    unidade_id: int | None
+    predio_id: int | None
+    unidade_ids: list[int] = Field(default_factory=list)
     is_active: bool
     consent_lgpd_accepted_at: datetime | None
     last_login_at: datetime | None
@@ -75,3 +92,15 @@ class UsuarioRead(BaseModel):
     updated_at: datetime
     deleted_at: datetime | None
     anonymized_at: datetime | None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _extrair_unidade_ids(cls, obj):
+        # `obj` é o próprio ORM `Usuario` (from_attributes) - `unidade_ids`
+        # não existe como coluna, é derivado da relação N:N `unidades`.
+        if hasattr(obj, "unidades") and not isinstance(obj, dict):
+            unidades = obj.unidades
+            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
+            data["unidade_ids"] = [u.id for u in unidades]
+            return data
+        return obj

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -19,9 +19,21 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def login(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
+    # Etapa 1 do login (ver POST /predios/identificar): o front primeiro
+    # identifica o prédio por CEP+número e manda o id aqui. Omitido (None) =
+    # tentativa de login como ADMINISTRADOR (papel global, sem prédio) - o
+    # próprio filtro abaixo (predio_id IS NULL) garante que só administradores
+    # conseguem logar sem essa etapa, sem precisar de um "role" separado no
+    # payload que o cliente poderia forjar.
+    predio_id: int | None = Form(default=None),
     db: Session = Depends(get_db),
 ) -> Token:
-    user = db.query(Usuario).filter(Usuario.email == form_data.username).first()
+    query = db.query(Usuario).filter(Usuario.email == form_data.username)
+    if predio_id is not None:
+        query = query.filter(Usuario.predio_id == predio_id)
+    else:
+        query = query.filter(Usuario.predio_id.is_(None))
+    user = query.first()
     usuario_elegivel = user is not None and not user.is_deleted
 
     # Executa a verificação de senha (com seu custo computacional Argon2)
@@ -34,7 +46,8 @@ def login(
     )
 
     # Mensagem de erro genérica de propósito: não revela se o problema foi o
-    # e-mail não encontrado ou a senha incorreta (evita "user enumeration").
+    # e-mail não encontrado (neste prédio - ou em prédio nenhum) ou a senha
+    # incorreta (evita "user enumeration" e, aqui, também "prédio enumeration").
     invalid_credentials = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="E-mail ou senha invalidos.",

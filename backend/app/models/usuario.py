@@ -3,23 +3,65 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, String, text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.models.associations import usuario_unidades
 from app.models.base import AuditMixin, SoftDeleteMixin, TimestampMixin
 from app.models.enums import RoleEnum
 
 if TYPE_CHECKING:
+    from app.models.predio import Predio
     from app.models.unidade import Unidade
 
 
 class Usuario(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
+    """Multi-tenant: todo usuário pertence a um único `Predio` (isolamento
+    forte entre condomínios), EXCETO o `ADMINISTRADOR` (papel global da
+    plataforma, sem prédio - por isso `predio_id` é nullable). A
+    `CheckConstraint` abaixo é a fonte de verdade desse invariante a nível de
+    banco: `administrador` <=> `predio_id IS NULL`, nas duas direções.
+
+    O vínculo com unidade(s) é N:N (`usuario_unidades`) - uma pessoa pode ser
+    proprietária/moradora de mais de uma unidade do mesmo prédio. Exigir
+    "pelo menos uma unidade" para papéis não-administrador é uma regra de
+    aplicação (ver routers/schemas), não expressável como constraint de
+    banco numa relação N:N sem trigger dedicado.
+    """
+
     __tablename__ = "usuarios"
+    __table_args__ = (
+        # E-mail é único DENTRO do prédio (dois prédios são inquilinos
+        # isolados; nada impede a mesma pessoa/e-mail de logar em prédios
+        # diferentes) e único globalmente entre administradores (que não têm
+        # prédio). Dois índices parciais em vez de um UniqueConstraint comum
+        # porque Postgres trata cada NULL de `predio_id` como distinto entre
+        # si - um UniqueConstraint(predio_id, email) simples NÃO impediria
+        # dois administradores com o mesmo e-mail.
+        Index(
+            "uq_usuarios_email_por_predio",
+            "predio_id",
+            "email",
+            unique=True,
+            postgresql_where=text("predio_id IS NOT NULL"),
+        ),
+        Index(
+            "uq_usuarios_email_administrador",
+            "email",
+            unique=True,
+            postgresql_where=text("predio_id IS NULL"),
+        ),
+        CheckConstraint(
+            "(role = 'administrador' AND predio_id IS NULL) "
+            "OR (role <> 'administrador' AND predio_id IS NOT NULL)",
+            name="ck_usuarios_administrador_sem_predio",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[RoleEnum] = mapped_column(
@@ -27,21 +69,19 @@ class Usuario(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
         nullable=False,
         default=RoleEnum.MORADOR,
     )
-    # FK opcional: a qual unidade este usuário está vinculado (ex.: morador).
-    # `use_alter=True` porque `unidades.proprietario_id` referencia de volta
-    # `usuarios.id` — quebra o ciclo de criação das tabelas (ver migration
-    # inicial, que cria esta constraint via ALTER TABLE após ambas existirem).
-    unidade_id: Mapped[int | None] = mapped_column(
-        ForeignKey("unidades.id", ondelete="SET NULL", use_alter=True, name="fk_usuarios_unidade_id"),
-        nullable=True,
+    predio_id: Mapped[int | None] = mapped_column(
+        ForeignKey("predios.id", ondelete="CASCADE"), nullable=True, index=True
     )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     consent_lgpd_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    unidade: Mapped["Unidade | None"] = relationship(
-        "Unidade", foreign_keys=[unidade_id], back_populates="moradores"
+    predio: Mapped["Predio | None"] = relationship(
+        "Predio", back_populates="usuarios", foreign_keys=[predio_id]
+    )
+    unidades: Mapped[list["Unidade"]] = relationship(
+        "Unidade", secondary=usuario_unidades, back_populates="usuarios"
     )
 
     def __repr__(self) -> str:  # pragma: no cover
-        return f"<Usuario id={self.id} email={self.email!r} role={self.role}>"
+        return f"<Usuario id={self.id} email={self.email!r} role={self.role} predio_id={self.predio_id}>"

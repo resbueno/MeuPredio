@@ -34,7 +34,10 @@ class FornecedorBase(BaseModel):
 
 
 class FornecedorCreate(FornecedorBase):
-    pass
+    # Só usado quando quem cria é o ADMINISTRADOR (sem prédio próprio).
+    # Qualquer outro criador (síndico) tem o prédio forçado para o seu
+    # próprio pelo router - nunca confia em predio_id vindo do cliente.
+    predio_id: int | None = None
 
 
 class FornecedorUpdate(BaseModel):
@@ -55,6 +58,7 @@ class FornecedorRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    predio_id: int
     nome: str
     documento: str | None
     categoria: str

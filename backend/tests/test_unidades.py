@@ -3,7 +3,7 @@ from __future__ import annotations
 from app.models.enums import RoleEnum
 from app.models.log_auditoria import LogAuditoria
 from app.models.unidade import Unidade
-from tests.utils import auth_header, make_user
+from tests.utils import auth_header, make_predio, make_user
 
 
 def test_criar_unidade_sem_autenticacao_retorna_401(client):
@@ -19,7 +19,7 @@ def test_morador_nao_pode_criar_unidade(client, db_session):
     assert response.status_code == 403
 
 
-def test_sindico_cria_unidade_com_sucesso_e_gera_auditoria(client, db_session):
+def test_sindico_cria_unidade_no_proprio_predio_e_gera_auditoria(client, db_session):
     sindico = make_user(db_session, email="sindico.u1@test.local", role=RoleEnum.SINDICO)
     response = client.post(
         "/unidades", json={"bloco": "A", "numero": "101"}, headers=auth_header(sindico)
@@ -28,6 +28,7 @@ def test_sindico_cria_unidade_com_sucesso_e_gera_auditoria(client, db_session):
     body = response.json()
     assert body["bloco"] == "A"
     assert body["numero"] == "101"
+    assert body["predio_id"] == sindico.predio_id
 
     criada = db_session.query(Unidade).filter(Unidade.id == body["id"]).one()
     log = (
@@ -42,39 +43,104 @@ def test_sindico_cria_unidade_com_sucesso_e_gera_auditoria(client, db_session):
     assert log is not None
 
 
+def test_sindico_nao_pode_escolher_outro_predio(client, db_session):
+    """predio_id no payload é ignorado para quem já tem prédio próprio -
+    isolamento nunca depende do cliente "se comportar"."""
+    outro_predio = make_predio(db_session)
+    sindico = make_user(db_session, email="sindico.u1b@test.local", role=RoleEnum.SINDICO)
+    response = client.post(
+        "/unidades",
+        json={"bloco": "X", "numero": "999", "predio_id": outro_predio.id},
+        headers=auth_header(sindico),
+    )
+    assert response.status_code == 201
+    assert response.json()["predio_id"] == sindico.predio_id
+
+
+def test_administrador_precisa_informar_predio_id(client, db_session):
+    admin = make_user(db_session, email="admin.u0@test.local", role=RoleEnum.ADMINISTRADOR)
+    response = client.post("/unidades", json={"bloco": "B", "numero": "202"}, headers=auth_header(admin))
+    assert response.status_code == 422
+
+
 def test_criar_unidade_duplicada_bloco_numero_retorna_409(client, db_session):
     admin = make_user(db_session, email="admin.u1@test.local", role=RoleEnum.ADMINISTRADOR)
-    client.post("/unidades", json={"bloco": "B", "numero": "202"}, headers=auth_header(admin))
+    predio = make_predio(db_session)
+    client.post(
+        "/unidades",
+        json={"bloco": "B", "numero": "202", "predio_id": predio.id},
+        headers=auth_header(admin),
+    )
     response = client.post(
-        "/unidades", json={"bloco": "B", "numero": "202"}, headers=auth_header(admin)
+        "/unidades",
+        json={"bloco": "B", "numero": "202", "predio_id": predio.id},
+        headers=auth_header(admin),
     )
     assert response.status_code == 409
 
 
-def test_criar_unidade_com_proprietario_inexistente_retorna_404(client, db_session):
+def test_mesmo_bloco_numero_permitido_em_predios_diferentes(client, db_session):
     admin = make_user(db_session, email="admin.u2@test.local", role=RoleEnum.ADMINISTRADOR)
-    response = client.post(
+    predio_a = make_predio(db_session)
+    predio_b = make_predio(db_session)
+    r1 = client.post(
         "/unidades",
-        json={"bloco": "C", "numero": "303", "proprietario_id": 999999},
+        json={"bloco": "C", "numero": "303", "predio_id": predio_a.id},
         headers=auth_header(admin),
     )
-    assert response.status_code == 404
+    r2 = client.post(
+        "/unidades",
+        json={"bloco": "C", "numero": "303", "predio_id": predio_b.id},
+        headers=auth_header(admin),
+    )
+    assert r1.status_code == 201
+    assert r2.status_code == 201
 
 
-def test_listar_unidades_qualquer_usuario_autenticado(client, db_session):
-    morador = make_user(db_session, email="morador.u2@test.local", role=RoleEnum.MORADOR)
+def test_listar_unidades_qualquer_usuario_autenticado_restrito_ao_proprio_predio(client, db_session):
+    predio = make_predio(db_session)
+    morador = make_user(db_session, email="morador.u2@test.local", role=RoleEnum.MORADOR, predio=predio)
     admin = make_user(db_session, email="admin.u3@test.local", role=RoleEnum.ADMINISTRADOR)
-    client.post("/unidades", json={"bloco": "D", "numero": "404"}, headers=auth_header(admin))
+    client.post(
+        "/unidades",
+        json={"bloco": "D", "numero": "404", "predio_id": predio.id},
+        headers=auth_header(admin),
+    )
+    outro_predio = make_predio(db_session)
+    client.post(
+        "/unidades",
+        json={"bloco": "Z", "numero": "999", "predio_id": outro_predio.id},
+        headers=auth_header(admin),
+    )
 
     response = client.get("/unidades", headers=auth_header(morador))
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    ids_predio = {u["predio_id"] for u in response.json()}
+    assert ids_predio == {predio.id}
+
+
+def test_acesso_direto_a_unidade_de_outro_predio_retorna_404(client, db_session):
+    predio_a = make_predio(db_session)
+    predio_b = make_predio(db_session)
+    sindico_a = make_user(db_session, email="sindico.u2@test.local", role=RoleEnum.SINDICO, predio=predio_a)
+    admin = make_user(db_session, email="admin.u5@test.local", role=RoleEnum.ADMINISTRADOR)
+    unidade_b = client.post(
+        "/unidades",
+        json={"bloco": "Y", "numero": "1", "predio_id": predio_b.id},
+        headers=auth_header(admin),
+    ).json()
+
+    response = client.get(f"/unidades/{unidade_b['id']}", headers=auth_header(sindico_a))
+    assert response.status_code == 404
 
 
 def test_soft_delete_unidade(client, db_session):
     admin = make_user(db_session, email="admin.u4@test.local", role=RoleEnum.ADMINISTRADOR)
+    predio = make_predio(db_session)
     criada = client.post(
-        "/unidades", json={"bloco": "E", "numero": "505"}, headers=auth_header(admin)
+        "/unidades",
+        json={"bloco": "E", "numero": "505", "predio_id": predio.id},
+        headers=auth_header(admin),
     ).json()
 
     response = client.delete(f"/unidades/{criada['id']}", headers=auth_header(admin))
@@ -84,6 +150,6 @@ def test_soft_delete_unidade(client, db_session):
     db_session.refresh(unidade)
     assert unidade.deleted_at is not None
 
-    listagem = client.get("/unidades", headers=auth_header(admin))
+    listagem = client.get("/unidades", params={"predio_id": predio.id}, headers=auth_header(admin))
     ids = [u["id"] for u in listagem.json()]
     assert criada["id"] not in ids

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.audit import model_to_audit_dict, registrar_log
-from app.core.dependencies import get_db, require_role
+from app.core.dependencies import get_db, require_role, resolver_predio_id
 from app.models.despesa_lancamento import DespesaLancamento
 from app.models.enums import RoleEnum, StatusDespesaEnum
 from app.models.fornecedor import Fornecedor
@@ -29,18 +29,26 @@ def _client_ip(request: Request) -> str | None:
     return request.client.host if request.client else None
 
 
-def _despesa_ou_404(db: Session, despesa_id: int) -> DespesaLancamento:
+def _despesa_ou_404(db: Session, despesa_id: int, current_user: Usuario) -> DespesaLancamento:
     despesa = db.get(DespesaLancamento, despesa_id)
     if despesa is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Despesa nao encontrada.")
+    # Isolamento multi-tenant: síndico nunca acessa despesa de outro prédio,
+    # nem por id direto (some como 404, não confirma existência).
+    if current_user.role != RoleEnum.ADMINISTRADOR and despesa.predio_id != current_user.predio_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Despesa nao encontrada.")
     return despesa
 
 
-def _validar_fornecedor(db: Session, fornecedor_id: int | None) -> None:
+def _validar_fornecedor(db: Session, fornecedor_id: int | None, predio_id: int) -> None:
     if fornecedor_id is None:
         return
     fornecedor = db.get(Fornecedor, fornecedor_id)
-    if fornecedor is None or fornecedor.deleted_at is not None:
+    if (
+        fornecedor is None
+        or fornecedor.deleted_at is not None
+        or fornecedor.predio_id != predio_id
+    ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fornecedor nao encontrado.")
 
 
@@ -59,9 +67,11 @@ def criar_despesa(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
 ) -> DespesaLancamento:
-    _validar_fornecedor(db, payload.fornecedor_id)
+    predio_id = resolver_predio_id(current_user, payload.predio_id)
+    _validar_fornecedor(db, payload.fornecedor_id, predio_id)
 
     despesa = DespesaLancamento(
+        predio_id=predio_id,
         fornecedor_id=payload.fornecedor_id,
         descricao=payload.descricao,
         categoria=payload.categoria,
@@ -93,6 +103,7 @@ def criar_despesa(
 def listar_despesas(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
+    predio_id: int | None = None,
     status_: StatusDespesaEnum | None = Query(default=None, alias="status"),
     categoria: str | None = None,
     fornecedor_id: int | None = None,
@@ -107,6 +118,13 @@ def listar_despesas(
         query = query.filter(DespesaLancamento.categoria == categoria)
     if fornecedor_id is not None:
         query = query.filter(DespesaLancamento.fornecedor_id == fornecedor_id)
+
+    if current_user.role == RoleEnum.ADMINISTRADOR:
+        if predio_id is not None:
+            query = query.filter(DespesaLancamento.predio_id == predio_id)
+    else:
+        query = query.filter(DespesaLancamento.predio_id == current_user.predio_id)
+
     return query.order_by(DespesaLancamento.data_vencimento).all()
 
 
@@ -116,7 +134,7 @@ def obter_despesa(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
 ) -> DespesaLancamento:
-    return _despesa_ou_404(db, despesa_id)
+    return _despesa_ou_404(db, despesa_id, current_user)
 
 
 @router.patch("/{despesa_id}", response_model=DespesaLancamentoRead)
@@ -127,12 +145,12 @@ def atualizar_despesa(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
 ) -> DespesaLancamento:
-    despesa = _despesa_ou_404(db, despesa_id)
+    despesa = _despesa_ou_404(db, despesa_id, current_user)
     _exigir_pendente(despesa, "editar")
     campos_enviados = payload.model_dump(exclude_unset=True)
 
     if "fornecedor_id" in campos_enviados:
-        _validar_fornecedor(db, campos_enviados["fornecedor_id"])
+        _validar_fornecedor(db, campos_enviados["fornecedor_id"], despesa.predio_id)
 
     dados_antes = model_to_audit_dict(despesa)
 
@@ -167,7 +185,7 @@ def registrar_pagamento(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
 ) -> DespesaLancamento:
-    despesa = _despesa_ou_404(db, despesa_id)
+    despesa = _despesa_ou_404(db, despesa_id, current_user)
     _exigir_pendente(despesa, "dar baixa em")
 
     dados_antes = model_to_audit_dict(despesa)
@@ -199,7 +217,7 @@ def cancelar_despesa(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
 ) -> DespesaLancamento:
-    despesa = _despesa_ou_404(db, despesa_id)
+    despesa = _despesa_ou_404(db, despesa_id, current_user)
     _exigir_pendente(despesa, "cancelar")
 
     dados_antes = model_to_audit_dict(despesa)
@@ -230,7 +248,7 @@ def remover_despesa(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
 ) -> None:
-    despesa = _despesa_ou_404(db, despesa_id)
+    despesa = _despesa_ou_404(db, despesa_id, current_user)
     if despesa.deleted_at is not None:
         return None
 

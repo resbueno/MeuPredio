@@ -18,7 +18,10 @@ class DespesaLancamentoBase(BaseModel):
 
 
 class DespesaLancamentoCreate(DespesaLancamentoBase):
-    pass
+    # Só usado quando quem cria é o ADMINISTRADOR (sem prédio próprio).
+    # Qualquer outro criador (síndico) tem o prédio forçado para o seu
+    # próprio pelo router - nunca confia em predio_id vindo do cliente.
+    predio_id: int | None = None
 
 
 class DespesaLancamentoUpdate(BaseModel):
@@ -41,6 +44,7 @@ class DespesaLancamentoRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    predio_id: int
     fornecedor_id: int | None
     descricao: str
     categoria: str

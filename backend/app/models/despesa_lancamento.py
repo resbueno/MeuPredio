@@ -29,6 +29,9 @@ class DespesaLancamento(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
     __tablename__ = "despesas_lancamentos"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    predio_id: Mapped[int] = mapped_column(
+        ForeignKey("predios.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     fornecedor_id: Mapped[int | None] = mapped_column(
         ForeignKey("fornecedores.id", ondelete="SET NULL"), nullable=True
     )

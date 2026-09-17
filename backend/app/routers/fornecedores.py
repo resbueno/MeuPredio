@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.audit import model_to_audit_dict, registrar_log
-from app.core.dependencies import get_db, require_role
+from app.core.dependencies import get_db, require_role, resolver_predio_id
 from app.models.enums import RoleEnum
 from app.models.fornecedor import Fornecedor
 from app.models.usuario import Usuario
@@ -25,23 +25,31 @@ def _client_ip(request: Request) -> str | None:
     return request.client.host if request.client else None
 
 
-def _fornecedor_ou_404(db: Session, fornecedor_id: int) -> Fornecedor:
+def _fornecedor_ou_404(db: Session, fornecedor_id: int, current_user: Usuario) -> Fornecedor:
     fornecedor = db.get(Fornecedor, fornecedor_id)
     if fornecedor is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fornecedor nao encontrado.")
+    # Isolamento multi-tenant: síndico nunca acessa fornecedor de outro
+    # prédio, nem por id direto (some como 404, não confirma existência).
+    if current_user.role != RoleEnum.ADMINISTRADOR and fornecedor.predio_id != current_user.predio_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fornecedor nao encontrado.")
     return fornecedor
 
 
-def _validar_documento_unico(db: Session, documento: str | None, *, ignorar_id: int | None = None) -> None:
+def _validar_documento_unico(
+    db: Session, documento: str | None, predio_id: int, *, ignorar_id: int | None = None
+) -> None:
     if documento is None:
         return
-    query = db.query(Fornecedor).filter(Fornecedor.documento == documento)
+    query = db.query(Fornecedor).filter(
+        Fornecedor.documento == documento, Fornecedor.predio_id == predio_id
+    )
     if ignorar_id is not None:
         query = query.filter(Fornecedor.id != ignorar_id)
     if query.first() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Ja existe um fornecedor cadastrado com este documento.",
+            detail="Ja existe um fornecedor cadastrado com este documento neste predio.",
         )
 
 
@@ -52,9 +60,11 @@ def criar_fornecedor(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
 ) -> Fornecedor:
-    _validar_documento_unico(db, payload.documento)
+    predio_id = resolver_predio_id(current_user, payload.predio_id)
+    _validar_documento_unico(db, payload.documento, predio_id)
 
     fornecedor = Fornecedor(
+        predio_id=predio_id,
         nome=payload.nome,
         documento=payload.documento,
         categoria=payload.categoria,
@@ -85,6 +95,7 @@ def criar_fornecedor(
 def listar_fornecedores(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
+    predio_id: int | None = None,
     categoria: str | None = None,
     incluir_inativos: bool = False,
 ) -> list[Fornecedor]:
@@ -93,6 +104,13 @@ def listar_fornecedores(
         query = query.filter(Fornecedor.deleted_at.is_(None))
     if categoria is not None:
         query = query.filter(Fornecedor.categoria == categoria)
+
+    if current_user.role == RoleEnum.ADMINISTRADOR:
+        if predio_id is not None:
+            query = query.filter(Fornecedor.predio_id == predio_id)
+    else:
+        query = query.filter(Fornecedor.predio_id == current_user.predio_id)
+
     return query.order_by(Fornecedor.nome).all()
 
 
@@ -102,7 +120,7 @@ def obter_fornecedor(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
 ) -> Fornecedor:
-    return _fornecedor_ou_404(db, fornecedor_id)
+    return _fornecedor_ou_404(db, fornecedor_id, current_user)
 
 
 @router.patch("/{fornecedor_id}", response_model=FornecedorRead)
@@ -113,11 +131,13 @@ def atualizar_fornecedor(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
 ) -> Fornecedor:
-    fornecedor = _fornecedor_ou_404(db, fornecedor_id)
+    fornecedor = _fornecedor_ou_404(db, fornecedor_id, current_user)
     campos_enviados = payload.model_dump(exclude_unset=True)
 
     if "documento" in campos_enviados:
-        _validar_documento_unico(db, campos_enviados["documento"], ignorar_id=fornecedor.id)
+        _validar_documento_unico(
+            db, campos_enviados["documento"], fornecedor.predio_id, ignorar_id=fornecedor.id
+        )
 
     dados_antes = model_to_audit_dict(fornecedor)
 
@@ -151,7 +171,7 @@ def remover_fornecedor(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
 ) -> None:
-    fornecedor = _fornecedor_ou_404(db, fornecedor_id)
+    fornecedor = _fornecedor_ou_404(db, fornecedor_id, current_user)
     if fornecedor.deleted_at is not None:
         return None
 

@@ -7,9 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.audit import model_to_audit_dict, registrar_log
-from app.core.dependencies import get_current_user, get_db, require_role
+from app.core.dependencies import get_current_user, get_db, require_role, resolver_predio_id
 from app.core.security import hash_password
 from app.models.enums import RoleEnum
+from app.models.unidade import Unidade
 from app.models.usuario import Usuario
 from app.schemas.usuario import UsuarioCreate, UsuarioRead, UsuarioUpdate
 
@@ -30,12 +31,39 @@ def _usuario_ou_404(db: Session, usuario_id: int) -> Usuario:
     return usuario
 
 
-def _autorizar_acesso_ou_self(current_user: Usuario, usuario_id: int) -> None:
-    if current_user.role not in _GESTORES and current_user.id != usuario_id:
+def _autorizar_acesso_ou_self(current_user: Usuario, alvo: Usuario) -> None:
+    """Combina a regra "self ou gestor" (já existia) com isolamento
+    multi-tenant: um síndico NUNCA acessa usuário de outro prédio - some
+    (404), sem confirmar que o usuário existe em outro tenant."""
+    if current_user.id == alvo.id:
+        return
+    if current_user.role not in _GESTORES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Voce so pode acessar o seu proprio cadastro.",
         )
+    if current_user.role == RoleEnum.SINDICO and current_user.predio_id != alvo.predio_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario nao encontrado.")
+
+
+def _validar_unidades(db: Session, unidade_ids: list[int], predio_id: int) -> list[Unidade]:
+    if not unidade_ids:
+        return []
+    unidades = (
+        db.query(Unidade)
+        .filter(
+            Unidade.id.in_(unidade_ids),
+            Unidade.predio_id == predio_id,
+            Unidade.deleted_at.is_(None),
+        )
+        .all()
+    )
+    if len(unidades) != len(set(unidade_ids)):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Uma ou mais unidades informadas nao existem neste predio.",
+        )
+    return unidades
 
 
 @router.post("", response_model=UsuarioRead, status_code=status.HTTP_201_CREATED)
@@ -45,15 +73,25 @@ def criar_usuario(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(*_GESTORES)),
 ) -> Usuario:
-    if payload.role == RoleEnum.ADMINISTRADOR and current_user.role != RoleEnum.ADMINISTRADOR:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Somente um administrador pode criar outro administrador.",
-        )
+    if payload.role == RoleEnum.ADMINISTRADOR:
+        if current_user.role != RoleEnum.ADMINISTRADOR:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Somente um administrador pode criar outro administrador.",
+            )
+        predio_id: int | None = None
+        unidades: list[Unidade] = []
+    else:
+        predio_id = resolver_predio_id(current_user, payload.predio_id)
+        unidades = _validar_unidades(db, payload.unidade_ids, predio_id)
 
     email_em_uso = (
         db.query(Usuario)
-        .filter(Usuario.email == payload.email, Usuario.deleted_at.is_(None))
+        .filter(
+            Usuario.email == payload.email,
+            Usuario.predio_id == predio_id,
+            Usuario.deleted_at.is_(None),
+        )
         .first()
     )
     if email_em_uso is not None:
@@ -64,7 +102,8 @@ def criar_usuario(
         hashed_password=hash_password(payload.password),
         full_name=payload.full_name,
         role=payload.role,
-        unidade_id=payload.unidade_id,
+        predio_id=predio_id,
+        unidades=unidades,
         is_active=True,
         created_by=current_user.id,
     )
@@ -89,12 +128,25 @@ def criar_usuario(
 @router.get("", response_model=list[UsuarioRead])
 def listar_usuarios(
     db: Session = Depends(get_db),
-    _current_user: Usuario = Depends(require_role(*_GESTORES)),
+    current_user: Usuario = Depends(require_role(*_GESTORES)),
+    predio_id: int | None = None,
     incluir_inativos: bool = False,
 ) -> list[Usuario]:
     query = db.query(Usuario)
     if not incluir_inativos:
         query = query.filter(Usuario.deleted_at.is_(None))
+
+    if current_user.role == RoleEnum.ADMINISTRADOR:
+        # Administrador enxerga a plataforma toda; predio_id aqui é um
+        # filtro opcional, não uma obrigação (diferente de criar recursos,
+        # onde ele precisa dizer para qual prédio é).
+        if predio_id is not None:
+            query = query.filter(Usuario.predio_id == predio_id)
+    else:
+        # Síndico: sempre restrito ao próprio prédio, ignorando qualquer
+        # predio_id que tente passar via query string.
+        query = query.filter(Usuario.predio_id == current_user.predio_id)
+
     return query.order_by(Usuario.id).all()
 
 
@@ -104,8 +156,8 @@ def obter_usuario(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ) -> Usuario:
-    _autorizar_acesso_ou_self(current_user, usuario_id)
     usuario = _usuario_ou_404(db, usuario_id)
+    _autorizar_acesso_ou_self(current_user, usuario)
     if usuario.deleted_at is not None and current_user.role not in _GESTORES:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario nao encontrado.")
     return usuario
@@ -119,32 +171,43 @@ def atualizar_usuario(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ) -> Usuario:
-    _autorizar_acesso_ou_self(current_user, usuario_id)
     usuario = _usuario_ou_404(db, usuario_id)
+    _autorizar_acesso_ou_self(current_user, usuario)
 
     is_gestor = current_user.role in _GESTORES
     campos_enviados = payload.model_dump(exclude_unset=True)
 
-    campos_restritos_a_gestor = {"role", "is_active", "unidade_id"}
+    campos_restritos_a_gestor = {"role", "is_active", "unidade_ids"}
     if not is_gestor and campos_restritos_a_gestor.intersection(campos_enviados):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Voce nao tem permissao para alterar este campo.",
         )
 
-    if "role" in campos_enviados and campos_enviados["role"] == RoleEnum.ADMINISTRADOR:
+    novo_role = campos_enviados.get("role", usuario.role)
+    if "role" in campos_enviados and novo_role == RoleEnum.ADMINISTRADOR:
         if current_user.role != RoleEnum.ADMINISTRADOR:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Somente um administrador pode conceder o papel de administrador.",
             )
+    if "role" in campos_enviados and usuario.role == RoleEnum.ADMINISTRADOR and novo_role != RoleEnum.ADMINISTRADOR:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nao e possivel rebaixar um administrador para um papel vinculado a predio por aqui.",
+        )
 
     dados_antes = model_to_audit_dict(usuario)
 
     if "full_name" in campos_enviados:
         usuario.full_name = campos_enviados["full_name"]
-    if "unidade_id" in campos_enviados:
-        usuario.unidade_id = campos_enviados["unidade_id"]
+    if "unidade_ids" in campos_enviados:
+        if usuario.role == RoleEnum.ADMINISTRADOR or novo_role == RoleEnum.ADMINISTRADOR:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Administrador nao pode estar vinculado a unidades.",
+            )
+        usuario.unidades = _validar_unidades(db, campos_enviados["unidade_ids"], usuario.predio_id)
     if "role" in campos_enviados:
         usuario.role = campos_enviados["role"]
     if "is_active" in campos_enviados:
@@ -181,6 +244,8 @@ def remover_usuario(
     """Soft-delete: marca `deleted_at` e desativa o usuário. Nunca faz DELETE
     físico — preserva histórico para auditoria e possível restauração."""
     usuario = _usuario_ou_404(db, usuario_id)
+    if current_user.role == RoleEnum.SINDICO and current_user.predio_id != usuario.predio_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario nao encontrado.")
     if usuario.deleted_at is not None:
         return None
 
@@ -221,7 +286,8 @@ def anonimizar_usuario(
     """Anonimização para fins de LGPD: substitui os dados pessoais do usuário
     por valores não identificáveis, preservando a linha (e seu histórico de
     auditoria associado) para fins contábeis/legais, sem reter dados pessoais
-    reais. Ação restrita a ADMINISTRADOR e irreversível.
+    reais. Ação restrita a ADMINISTRADOR (papel global da plataforma, atua
+    entre prédios para fins de compliance) e irreversível.
     """
     usuario = _usuario_ou_404(db, usuario_id)
     if usuario.anonymized_at is not None:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from app.models.enums import RoleEnum
 from app.models.log_auditoria import LogAuditoria
-from tests.utils import auth_header, make_user
+from tests.utils import auth_header, make_predio, make_user
 
 
 def test_criar_fornecedor_sem_autenticacao_retorna_401(client):
@@ -71,7 +71,13 @@ def test_documento_invalido_e_rejeitado(client, db_session):
 
 def test_documento_duplicado_retorna_409(client, db_session):
     admin = make_user(db_session, email="admin.f1@test.local", role=RoleEnum.ADMINISTRADOR)
-    payload = {"nome": "Fornecedor Y", "documento": "98765432000112", "categoria": "eletrica"}
+    predio = make_predio(db_session)
+    payload = {
+        "nome": "Fornecedor Y",
+        "documento": "98765432000112",
+        "categoria": "eletrica",
+        "predio_id": predio.id,
+    }
     primeiro = client.post("/fornecedores", json=payload, headers=auth_header(admin))
     assert primeiro.status_code == 201
 
@@ -83,26 +89,61 @@ def test_documento_duplicado_retorna_409(client, db_session):
     assert segundo.status_code == 409
 
 
+def test_mesmo_documento_permitido_em_predios_diferentes(client, db_session):
+    admin = make_user(db_session, email="admin.f3@test.local", role=RoleEnum.ADMINISTRADOR)
+    predio_a = make_predio(db_session)
+    predio_b = make_predio(db_session)
+    payload = {"nome": "Fornecedor Z", "documento": "11122233344", "categoria": "manutencao"}
+
+    r1 = client.post(
+        "/fornecedores", json={**payload, "predio_id": predio_a.id}, headers=auth_header(admin)
+    )
+    r2 = client.post(
+        "/fornecedores", json={**payload, "predio_id": predio_b.id}, headers=auth_header(admin)
+    )
+    assert r1.status_code == 201
+    assert r2.status_code == 201
+
+
+def test_sindico_nao_ve_fornecedor_de_outro_predio(client, db_session):
+    admin = make_user(db_session, email="admin.f4@test.local", role=RoleEnum.ADMINISTRADOR)
+    outro_predio = make_predio(db_session)
+    fornecedor_alheio = client.post(
+        "/fornecedores",
+        json={"nome": "Alheio", "categoria": "outros", "predio_id": outro_predio.id},
+        headers=auth_header(admin),
+    ).json()
+    sindico = make_user(db_session, email="sindico.f3@test.local", role=RoleEnum.SINDICO)
+
+    resposta = client.get(f"/fornecedores/{fornecedor_alheio['id']}", headers=auth_header(sindico))
+    assert resposta.status_code == 404
+
+
 def test_listar_filtra_por_categoria_e_ignora_soft_deleted(client, db_session):
     admin = make_user(db_session, email="admin.f2@test.local", role=RoleEnum.ADMINISTRADOR)
+    predio = make_predio(db_session)
     f1 = client.post(
         "/fornecedores",
-        json={"nome": "Limpeza A", "categoria": "limpeza"},
+        json={"nome": "Limpeza A", "categoria": "limpeza", "predio_id": predio.id},
         headers=auth_header(admin),
     ).json()
     client.post(
         "/fornecedores",
-        json={"nome": "Eletrica B", "categoria": "eletrica"},
+        json={"nome": "Eletrica B", "categoria": "eletrica", "predio_id": predio.id},
         headers=auth_header(admin),
     )
 
     client.delete(f"/fornecedores/{f1['id']}", headers=auth_header(admin))
 
     resposta_categoria = client.get(
-        "/fornecedores", params={"categoria": "eletrica"}, headers=auth_header(admin)
+        "/fornecedores",
+        params={"categoria": "eletrica", "predio_id": predio.id},
+        headers=auth_header(admin),
     )
     nomes = [f["nome"] for f in resposta_categoria.json()]
     assert nomes == ["Eletrica B"]
 
-    resposta_geral = client.get("/fornecedores", headers=auth_header(admin))
+    resposta_geral = client.get(
+        "/fornecedores", params={"predio_id": predio.id}, headers=auth_header(admin)
+    )
     assert f1["id"] not in [f["id"] for f in resposta_geral.json()]

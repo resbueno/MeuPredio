@@ -31,21 +31,28 @@ def _veiculo_ou_404(db: Session, veiculo_id: int) -> Veiculo:
     return veiculo
 
 
-def _validar_unidade(db: Session, unidade_id: int) -> None:
+def _validar_unidade(db: Session, unidade_id: int, current_user: Usuario) -> Unidade:
     unidade = db.get(Unidade, unidade_id)
     if unidade is None or unidade.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade nao encontrada.")
+    # Isolamento multi-tenant: um síndico/zelador não cadastra veículo em
+    # unidade de outro prédio (administrador, sem prédio, fica de fora).
+    if current_user.role != RoleEnum.ADMINISTRADOR and unidade.predio_id != current_user.predio_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade nao encontrada.")
+    return unidade
 
 
 def _autorizar_acesso_morador(current_user: Usuario, veiculo: Veiculo) -> None:
-    """Um morador só enxerga veículos da própria unidade; papéis operacionais
-    (administrador/síndico/zelador) enxergam qualquer veículo."""
+    """Um morador/proprietário só enxerga veículos das PRÓPRIAS unidades
+    (relação N:N - pode ter mais de uma); papéis operacionais
+    (administrador/síndico/zelador) enxergam qualquer veículo do prédio."""
     if current_user.role in _OPERACIONAIS:
         return
-    if current_user.unidade_id is None or current_user.unidade_id != veiculo.unidade_id:
+    minhas_unidades = {u.id for u in current_user.unidades}
+    if veiculo.unidade_id not in minhas_unidades:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Voce so pode acessar veiculos da sua propria unidade.",
+            detail="Voce so pode acessar veiculos das suas proprias unidades.",
         )
 
 
@@ -56,7 +63,7 @@ def criar_veiculo(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(*_OPERACIONAIS)),
 ) -> Veiculo:
-    _validar_unidade(db, payload.unidade_id)
+    _validar_unidade(db, payload.unidade_id, current_user)
 
     veiculo = Veiculo(
         unidade_id=payload.unidade_id,
@@ -91,19 +98,22 @@ def listar_veiculos(
     unidade_id: int | None = None,
     incluir_inativos: bool = False,
 ) -> list[Veiculo]:
-    query = db.query(Veiculo)
+    query = db.query(Veiculo).join(Unidade, Veiculo.unidade_id == Unidade.id)
     if not incluir_inativos:
         query = query.filter(Veiculo.deleted_at.is_(None))
 
     if current_user.role in _OPERACIONAIS:
+        if current_user.role != RoleEnum.ADMINISTRADOR:
+            query = query.filter(Unidade.predio_id == current_user.predio_id)
         if unidade_id is not None:
             query = query.filter(Veiculo.unidade_id == unidade_id)
     else:
-        # Morador: sempre restrito à própria unidade, ignorando qualquer
-        # unidade_id que tente passar via query string.
-        if current_user.unidade_id is None:
+        # Morador/proprietário: sempre restrito às próprias unidades,
+        # ignorando qualquer unidade_id que tente passar via query string.
+        minhas_unidades = [u.id for u in current_user.unidades]
+        if not minhas_unidades:
             return []
-        query = query.filter(Veiculo.unidade_id == current_user.unidade_id)
+        query = query.filter(Veiculo.unidade_id.in_(minhas_unidades))
 
     return query.order_by(Veiculo.id).all()
 
@@ -131,7 +141,7 @@ def atualizar_veiculo(
     campos_enviados = payload.model_dump(exclude_unset=True)
 
     if "unidade_id" in campos_enviados:
-        _validar_unidade(db, campos_enviados["unidade_id"])
+        _validar_unidade(db, campos_enviados["unidade_id"], current_user)
 
     dados_antes = model_to_audit_dict(veiculo)
 
