@@ -17,6 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/unidades", label: "Unidades" },
   { to: "/veiculos", label: "Veiculos" },
   { to: "/despesas", label: "Contas", roles: ["administrador", "sindico"] },
+  { to: "/transparencia", label: "Transparencia" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

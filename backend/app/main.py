@@ -4,7 +4,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.routers import auth, despesas, fornecedores, health, predios, unidades, usuarios, veiculos
+from app.routers import (
+    auth,
+    despesas,
+    fornecedores,
+    health,
+    predios,
+    transparencia,
+    unidades,
+    usuarios,
+    veiculos,
+)
 
 settings = get_settings()
 
@@ -34,3 +44,4 @@ app.include_router(unidades.router)
 app.include_router(veiculos.router)
 app.include_router(fornecedores.router)
 app.include_router(despesas.router)
+app.include_router(transparencia.router)

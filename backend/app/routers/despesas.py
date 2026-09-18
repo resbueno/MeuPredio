@@ -210,7 +210,10 @@ async def extrair_boleto(
 def obter_documento(
     predio_id: int,
     nome_arquivo: str,
-    current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
+    # Qualquer papel autenticado (nao so _FINANCEIRO): o Portal da
+    # Transparencia deixa qualquer condomino ver o comprovante/boleto
+    # digitalizado - o escopo por predio abaixo e a guarda real.
+    current_user: Usuario = Depends(require_role()),
 ) -> FileResponse:
     if current_user.role != RoleEnum.ADMINISTRADOR and current_user.predio_id != predio_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento nao encontrado.")

@@ -10,6 +10,7 @@ import { PrediosPage } from "./pages/predios/PrediosPage";
 import { UnidadesPage } from "./pages/unidades/UnidadesPage";
 import { VeiculosPage } from "./pages/veiculos/VeiculosPage";
 import { DespesasPage } from "./pages/despesas/DespesasPage";
+import { TransparenciaPage } from "./pages/transparencia/TransparenciaPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -70,6 +71,14 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={["administrador", "sindico"]}>
                   <DespesasPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/transparencia"
+              element={
+                <ProtectedRoute>
+                  <TransparenciaPage />
                 </ProtectedRoute>
               }
             />

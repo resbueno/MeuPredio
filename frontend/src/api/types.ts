@@ -169,6 +169,33 @@ export interface DespesaCreateInput {
   predio_id?: number | null;
 }
 
+export interface DespesaTransparencia {
+  id: number;
+  descricao: string;
+  categoria: string;
+  valor: string;
+  data_vencimento: string;
+  data_pagamento: string | null;
+  status: StatusDespesaEnum;
+  esta_atrasada: boolean;
+  documento_url: string | null;
+}
+
+export interface TotalPorCategoria {
+  categoria: string;
+  total: string;
+}
+
+export interface Balancete {
+  ano: number;
+  mes: number | null;
+  total_pago: string;
+  total_pendente: string;
+  total_cancelado: string;
+  total_geral: string;
+  por_categoria: TotalPorCategoria[];
+}
+
 export interface ExtracaoBoleto {
   documento_url: string;
   fornecedor_nome: string | null;

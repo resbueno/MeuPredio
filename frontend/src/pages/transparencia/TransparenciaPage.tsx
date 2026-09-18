@@ -1,0 +1,202 @@
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { AppShell } from "../../components/layout/AppShell";
+import { useAuth } from "../../auth/AuthContext";
+import { baixarDocumento, getBalancete, listDespesasTransparencia } from "../../api/transparencia";
+import type { DespesaTransparencia, StatusDespesaEnum } from "../../api/types";
+
+const STATUS_LABEL: Record<StatusDespesaEnum, string> = {
+  pendente: "Pendente",
+  pago: "Paga",
+  cancelado: "Cancelada",
+};
+
+const STATUS_CLASSES: Record<StatusDespesaEnum, string> = {
+  pendente: "bg-amber-100 text-amber-700",
+  pago: "bg-emerald-100 text-emerald-700",
+  cancelado: "bg-slate-200 text-slate-500",
+};
+
+const MESES = [
+  "Janeiro",
+  "Fevereiro",
+  "Marco",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
+
+function formatarValor(valor: string): string {
+  const numero = Number(valor);
+  return Number.isFinite(numero)
+    ? numero.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+    : valor;
+}
+
+export function TransparenciaPage() {
+  const { user } = useAuth();
+  const souAdministrador = user?.role === "administrador";
+
+  const hoje = new Date();
+  const [predioIdAdminInput, setPredioIdAdminInput] = useState("");
+  const predioIdAdmin = predioIdAdminInput.trim() ? Number(predioIdAdminInput.trim()) : null;
+  const bloqueadoSemPredio = souAdministrador && !predioIdAdmin;
+
+  const [ano, setAno] = useState(hoje.getFullYear());
+  const [mes, setMes] = useState(hoje.getMonth() + 1);
+
+  const filtro = { predioId: souAdministrador ? predioIdAdmin : undefined, ano, mes };
+
+  const { data: balancete, isLoading: carregandoBalancete } = useQuery({
+    queryKey: ["transparencia-balancete", filtro],
+    queryFn: () => getBalancete(filtro),
+    enabled: !bloqueadoSemPredio,
+  });
+
+  const { data: despesas, isLoading: carregandoDespesas } = useQuery({
+    queryKey: ["transparencia-despesas", filtro],
+    queryFn: () => listDespesasTransparencia(filtro),
+    enabled: !bloqueadoSemPredio,
+  });
+
+  async function verDocumento(despesa: DespesaTransparencia): Promise<void> {
+    if (!despesa.documento_url) return;
+    const url = await baixarDocumento(despesa.documento_url);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  return (
+    <AppShell>
+      <h1 className="mb-4 text-xl font-bold text-slate-800">Portal da Transparencia</h1>
+
+      {souAdministrador && (
+        <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
+          <label className="mb-1 block text-xs font-medium text-slate-600">ID do predio</label>
+          <input
+            inputMode="numeric"
+            value={predioIdAdminInput}
+            onChange={(event) => setPredioIdAdminInput(event.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            placeholder="Ex.: 1"
+          />
+        </div>
+      )}
+
+      <div className="mb-6 flex gap-3 rounded-2xl bg-white p-4 shadow-sm">
+        <div className="flex-1">
+          <label className="mb-1 block text-xs font-medium text-slate-600">Mes</label>
+          <select
+            value={mes}
+            onChange={(event) => setMes(Number(event.target.value))}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          >
+            {MESES.map((nome, indice) => (
+              <option key={nome} value={indice + 1}>
+                {nome}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="mb-1 block text-xs font-medium text-slate-600">Ano</label>
+          <input
+            inputMode="numeric"
+            value={ano}
+            onChange={(event) => setAno(Number(event.target.value) || hoje.getFullYear())}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
+
+      {bloqueadoSemPredio && (
+        <p className="mb-4 text-sm text-amber-600">Informe o ID do predio acima para continuar.</p>
+      )}
+
+      {!bloqueadoSemPredio && (
+        <>
+          <div className="mb-6 grid grid-cols-3 gap-2">
+            <div className="rounded-2xl bg-white p-3 text-center shadow-sm">
+              <p className="text-xs text-slate-500">Pago</p>
+              <p className="text-sm font-semibold text-emerald-700">
+                {carregandoBalancete ? "..." : formatarValor(balancete?.total_pago ?? "0")}
+              </p>
+            </div>
+            <div className="rounded-2xl bg-white p-3 text-center shadow-sm">
+              <p className="text-xs text-slate-500">Pendente</p>
+              <p className="text-sm font-semibold text-amber-700">
+                {carregandoBalancete ? "..." : formatarValor(balancete?.total_pendente ?? "0")}
+              </p>
+            </div>
+            <div className="rounded-2xl bg-white p-3 text-center shadow-sm">
+              <p className="text-xs text-slate-500">Total</p>
+              <p className="text-sm font-semibold text-slate-800">
+                {carregandoBalancete ? "..." : formatarValor(balancete?.total_geral ?? "0")}
+              </p>
+            </div>
+          </div>
+
+          {balancete && balancete.por_categoria.length > 0 && (
+            <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
+              <h2 className="mb-2 text-sm font-semibold text-slate-700">Por categoria</h2>
+              <ul className="space-y-1">
+                {balancete.por_categoria.map((item) => (
+                  <li key={item.categoria} className="flex justify-between text-sm text-slate-600">
+                    <span className="capitalize">{item.categoria}</span>
+                    <span className="font-medium">{formatarValor(item.total)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <h2 className="mb-2 text-sm font-semibold text-slate-700">Prestacao de contas</h2>
+          {carregandoDespesas && <p className="text-sm text-slate-500">Carregando...</p>}
+          <ul className="space-y-2">
+            {despesas?.map((despesa) => (
+              <li key={despesa.id} className="rounded-xl bg-white p-3 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-slate-800">{despesa.descricao}</p>
+                    <p className="text-xs text-slate-500">
+                      {despesa.categoria} - Vencimento{" "}
+                      {new Date(`${despesa.data_vencimento}T00:00:00`).toLocaleDateString("pt-BR")}
+                    </p>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[despesa.status]}`}
+                  >
+                    {STATUS_LABEL[despesa.status]}
+                    {despesa.esta_atrasada ? " - atrasada" : ""}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-700">{formatarValor(despesa.valor)}</p>
+                  {despesa.documento_url && (
+                    <button
+                      type="button"
+                      onClick={() => verDocumento(despesa)}
+                      className="text-xs font-medium text-brand-600"
+                    >
+                      Ver documento
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+            {despesas?.length === 0 && (
+              <li className="rounded-xl bg-white p-4 text-center text-sm text-slate-500 shadow-sm">
+                Nenhuma conta neste periodo.
+              </li>
+            )}
+          </ul>
+        </>
+      )}
+    </AppShell>
+  );
+}
