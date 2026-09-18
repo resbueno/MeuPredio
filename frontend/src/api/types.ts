@@ -418,3 +418,40 @@ export interface ReuniaoAtualizarInput {
   local?: string;
   pauta?: string;
 }
+
+export type TipoNotificacaoEnum = "aviso_geral" | "aviso_direto" | "ocorrencia" | "reuniao" | "entrega";
+
+export interface Notificacao {
+  id: number;
+  tipo: TipoNotificacaoEnum;
+  titulo: string;
+  mensagem: string;
+  referencia_tipo: string | null;
+  referencia_id: number | null;
+  lida_em: string | null;
+  created_at: string;
+}
+
+export interface NotificacaoContagem {
+  nao_lidas: number;
+}
+
+export interface Entrega {
+  id: number;
+  predio_id: number;
+  unidade_id: number;
+  descricao: string;
+  localizacao: string;
+  retirada_em: string | null;
+  retirada_por: number | null;
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EntregaCreateInput {
+  unidade_id: number;
+  descricao: string;
+  localizacao: string;
+  predio_id?: number | null;
+}

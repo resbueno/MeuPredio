@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import model_to_audit_dict, registrar_log
 from app.core.dependencies import get_db, require_role, resolver_predio_id
+from app.core.notificacoes import ids_usuarios_do_predio, notificar_usuarios
 from app.models.aviso_mural import AvisoMural
-from app.models.enums import RoleEnum, TipoAvisoMuralEnum
+from app.models.enums import RoleEnum, TipoAvisoMuralEnum, TipoNotificacaoEnum
 from app.models.usuario import Usuario
 from app.schemas.aviso_mural import AvisoMuralAtualizar, AvisoMuralCreate, AvisoMuralRead
 
@@ -88,6 +89,19 @@ def criar_aviso_mural(
     )
     db.add(aviso)
     db.flush()
+
+    if payload.tipo == TipoAvisoMuralEnum.CONDOMINIO:
+        destinatarios = ids_usuarios_do_predio(db, predio_id) - {current_user.id}
+        notificar_usuarios(
+            db,
+            predio_id=predio_id,
+            usuario_ids=destinatarios,
+            tipo=TipoNotificacaoEnum.AVISO_GERAL,
+            titulo=aviso.titulo,
+            mensagem=aviso.descricao,
+            referencia_tipo="aviso_mural",
+            referencia_id=aviso.id,
+        )
 
     registrar_log(
         db,

@@ -8,9 +8,16 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import model_to_audit_dict, registrar_log
 from app.core.dependencies import get_db, require_role, resolver_predio_id
+from app.core.notificacoes import notificar_usuarios
 from app.models.aviso_direto import AvisoDireto
 from app.models.despesa_lancamento import DespesaLancamento
-from app.models.enums import DestinatarioAvisoEnum, RoleEnum, StatusDespesaEnum, TipoAvisoDiretoEnum
+from app.models.enums import (
+    DestinatarioAvisoEnum,
+    RoleEnum,
+    StatusDespesaEnum,
+    TipoAvisoDiretoEnum,
+    TipoNotificacaoEnum,
+)
 from app.models.unidade import Unidade
 from app.models.usuario import Usuario
 from app.schemas.aviso_direto import AvisoDiretoCreate, AvisoDiretoRead, AvisoDiretoResponder
@@ -111,6 +118,24 @@ def criar_aviso_direto(
             ip_origem=_client_ip(request),
             user_agent=request.headers.get("user-agent"),
         )
+
+    destinatarios = {
+        u.id
+        for u in unidade.usuarios
+        if u.deleted_at is None
+        and u.id != current_user.id
+        and _destinatario_bate_com_algum_papel(payload.destinatario, u.roles_efetivos)
+    }
+    notificar_usuarios(
+        db,
+        predio_id=predio_id,
+        usuario_ids=destinatarios,
+        tipo=TipoNotificacaoEnum.AVISO_DIRETO,
+        titulo=aviso.titulo,
+        mensagem=aviso.mensagem,
+        referencia_tipo="aviso_direto",
+        referencia_id=aviso.id,
+    )
 
     registrar_log(
         db,

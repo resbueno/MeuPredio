@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import model_to_audit_dict, registrar_log
 from app.core.dependencies import get_db, require_role, resolver_predio_id
-from app.models.enums import RoleEnum
+from app.core.notificacoes import ids_usuarios_com_papel, notificar_usuarios
+from app.models.enums import RoleEnum, TipoNotificacaoEnum
 from app.models.ocorrencia import Ocorrencia
 from app.models.unidade import Unidade
 from app.models.usuario import Usuario
@@ -63,6 +64,18 @@ def criar_ocorrencia(
     )
     db.add(ocorrencia)
     db.flush()
+
+    destinatarios = ids_usuarios_com_papel(db, predio_id, RoleEnum.SINDICO) - {current_user.id}
+    notificar_usuarios(
+        db,
+        predio_id=predio_id,
+        usuario_ids=destinatarios,
+        tipo=TipoNotificacaoEnum.OCORRENCIA,
+        titulo=f"Nova ocorrência: {ocorrencia.titulo}",
+        mensagem=ocorrencia.descricao,
+        referencia_tipo="ocorrencia",
+        referencia_id=ocorrencia.id,
+    )
 
     registrar_log(
         db,

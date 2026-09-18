@@ -97,3 +97,14 @@ class StatusReuniaoEnum(str, enum.Enum):
     CONVOCADA = "convocada"
     REALIZADA = "realizada"
     CANCELADA = "cancelada"
+
+
+class TipoNotificacaoEnum(str, enum.Enum):
+    """Origem de uma notificação no sino de alertas - cada valor mapeia a um
+    evento gerado por outro módulo (ver app/core/notificacoes.py)."""
+
+    AVISO_GERAL = "aviso_geral"
+    AVISO_DIRETO = "aviso_direto"
+    OCORRENCIA = "ocorrencia"
+    REUNIAO = "reuniao"
+    ENTREGA = "entrega"

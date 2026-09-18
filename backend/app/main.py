@@ -9,8 +9,10 @@ from app.routers import (
     avisos_diretos,
     avisos_mural,
     despesas,
+    entregas,
     fornecedores,
     health,
+    notificacoes,
     ocorrencias,
     predios,
     reunioes,
@@ -55,3 +57,5 @@ app.include_router(avisos_mural.router)
 app.include_router(avisos_diretos.router)
 app.include_router(ocorrencias.router)
 app.include_router(reunioes.router)
+app.include_router(entregas.router)
+app.include_router(notificacoes.router)

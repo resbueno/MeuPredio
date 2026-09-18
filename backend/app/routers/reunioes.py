@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import model_to_audit_dict, registrar_log
 from app.core.dependencies import get_db, require_role, resolver_predio_id
-from app.models.enums import RoleEnum, StatusReuniaoEnum
+from app.core.notificacoes import ids_usuarios_do_predio, notificar_usuarios
+from app.models.enums import RoleEnum, StatusReuniaoEnum, TipoNotificacaoEnum
 from app.models.reuniao import Reuniao
 from app.models.reuniao_presenca import ReuniaoPresenca
 from app.models.unidade import Unidade
@@ -71,6 +72,18 @@ def convocar_reuniao(
     )
     db.add(reuniao)
     db.flush()
+
+    destinatarios = ids_usuarios_do_predio(db, predio_id) - {current_user.id}
+    notificar_usuarios(
+        db,
+        predio_id=predio_id,
+        usuario_ids=destinatarios,
+        tipo=TipoNotificacaoEnum.REUNIAO,
+        titulo=f"Reunião convocada: {reuniao.titulo}",
+        mensagem=f"{reuniao.local} - {reuniao.data_hora.strftime('%d/%m/%Y %H:%M')}",
+        referencia_tipo="reuniao",
+        referencia_id=reuniao.id,
+    )
 
     registrar_log(
         db,

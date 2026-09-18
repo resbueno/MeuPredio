@@ -5,8 +5,10 @@ from app.models.associations import usuario_unidades  # noqa: F401
 from app.models.aviso_direto import AvisoDireto  # noqa: F401
 from app.models.aviso_mural import AvisoMural  # noqa: F401
 from app.models.despesa_lancamento import DespesaLancamento  # noqa: F401
+from app.models.entrega import Entrega  # noqa: F401
 from app.models.fornecedor import Fornecedor  # noqa: F401
 from app.models.log_auditoria import LogAuditoria  # noqa: F401
+from app.models.notificacao import Notificacao  # noqa: F401
 from app.models.ocorrencia import Ocorrencia  # noqa: F401
 from app.models.predio import Predio  # noqa: F401
 from app.models.predio_convite import PredioConvite  # noqa: F401
@@ -38,5 +40,7 @@ __all__ = [
     "AvisoMural",
     "AvisoDireto",
     "Ocorrencia",
+    "Notificacao",
+    "Entrega",
     "usuario_unidades",
 ]
