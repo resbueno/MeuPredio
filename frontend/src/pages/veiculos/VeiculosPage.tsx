@@ -6,12 +6,13 @@ import { z } from "zod";
 import { AppShell } from "../../components/layout/AppShell";
 import { useAuth } from "../../auth/AuthContext";
 import { createVeiculo, deleteVeiculo, listVeiculos, updateVeiculo } from "../../api/veiculos";
+import { listUnidades } from "../../api/unidades";
 import type { TipoVeiculoEnum, Veiculo, VeiculoInput } from "../../api/types";
 
 const TIPOS: TipoVeiculoEnum[] = ["carro", "moto", "outro"];
 
 const veiculoSchema = z.object({
-  unidade_id: z.string().min(1, "Informe o id da unidade."),
+  unidade_id: z.string().min(1, "Selecione a unidade."),
   placa: z.string().min(6, "Informe uma placa válida."),
   modelo: z.string().min(1, "Informe o modelo."),
   cor: z.string().min(1, "Informe a cor."),
@@ -43,9 +44,16 @@ export function VeiculosPage() {
   const podeGerenciar =
     user?.role === "administrador" || user?.role === "sindico" || user?.role === "zelador";
 
+  const souAdministrador = user?.role === "administrador";
+
   const { data: veiculos, isLoading } = useQuery({
     queryKey: ["veiculos"],
     queryFn: listVeiculos,
+  });
+
+  const { data: unidades } = useQuery({
+    queryKey: ["unidades", "combo"],
+    queryFn: () => listUnidades(),
   });
 
   const {
@@ -121,12 +129,19 @@ export function VeiculosPage() {
           </h2>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">ID da unidade</label>
-            <input
-              inputMode="numeric"
+            <label className="mb-1 block text-xs font-medium text-slate-600">Unidade</label>
+            <select
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               {...register("unidade_id")}
-            />
+            >
+              <option value="">Selecione...</option>
+              {unidades?.map((unidade) => (
+                <option key={unidade.id} value={unidade.id}>
+                  Bloco {unidade.bloco} - {unidade.numero}
+                  {souAdministrador ? ` (Prédio #${unidade.predio_id})` : ""}
+                </option>
+              ))}
+            </select>
             {errors.unidade_id && (
               <p className="mt-1 text-xs text-red-600">{errors.unidade_id.message}</p>
             )}

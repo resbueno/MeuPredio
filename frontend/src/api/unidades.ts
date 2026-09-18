@@ -1,8 +1,10 @@
 import { apiClient } from "./client";
 import type { Unidade, UnidadeInput } from "./types";
 
-export async function listUnidades(): Promise<Unidade[]> {
-  const { data } = await apiClient.get<Unidade[]>("/unidades");
+export async function listUnidades(predioId?: number | null): Promise<Unidade[]> {
+  const { data } = await apiClient.get<Unidade[]>("/unidades", {
+    params: { predio_id: predioId ?? undefined },
+  });
   return data;
 }
 

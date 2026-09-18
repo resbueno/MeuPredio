@@ -34,7 +34,7 @@ export function UnidadesPage() {
 
   const { data: unidades, isLoading } = useQuery({
     queryKey: ["unidades"],
-    queryFn: listUnidades,
+    queryFn: () => listUnidades(),
   });
 
   const {

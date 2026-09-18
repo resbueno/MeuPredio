@@ -12,6 +12,7 @@ import {
   listUsuarios,
   updateUsuario,
 } from "../../api/usuarios";
+import { listUnidades } from "../../api/unidades";
 import type { RoleEnum, Usuario, UsuarioCreateInput, UsuarioUpdateInput } from "../../api/types";
 
 const ROLES: RoleEnum[] = ["morador", "proprietario", "sindico", "zelador", "administrador"];
@@ -24,20 +25,11 @@ const ROLE_LABELS: Record<RoleEnum, string> = {
   administrador: "Administrador",
 };
 
-function parseUnidadeIds(texto: string | undefined): number[] {
-  return (texto ?? "")
-    .split(",")
-    .map((parte) => parte.trim())
-    .filter(Boolean)
-    .map(Number)
-    .filter((n) => !Number.isNaN(n));
-}
-
 const usuarioSchema = z.object({
   email: z.string().min(1, "Informe o e-mail.").email("Informe um e-mail válido."),
   full_name: z.string().min(2, "Informe o nome completo."),
   role: z.enum(["morador", "proprietario", "sindico", "zelador", "administrador"]),
-  unidade_ids: z.string().optional(),
+  unidade_ids: z.array(z.number()).default([]),
   predio_id: z.string().optional(),
   password: z.string().optional(),
 });
@@ -59,6 +51,8 @@ export function UsuariosPage() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<UsuarioFormValues>({
     resolver: zodResolver(usuarioSchema),
@@ -66,7 +60,7 @@ export function UsuariosPage() {
       email: "",
       full_name: "",
       role: "morador",
-      unidade_ids: "",
+      unidade_ids: [],
       predio_id: "",
       password: "",
     },
@@ -78,14 +72,42 @@ export function UsuariosPage() {
         email: editing.email,
         full_name: editing.full_name,
         role: editing.role,
-        unidade_ids: editing.unidade_ids.join(", "),
+        unidade_ids: editing.unidade_ids,
         predio_id: editing.predio_id ? String(editing.predio_id) : "",
         password: "",
       });
     } else {
-      reset({ email: "", full_name: "", role: "morador", unidade_ids: "", predio_id: "", password: "" });
+      reset({ email: "", full_name: "", role: "morador", unidade_ids: [], predio_id: "", password: "" });
     }
   }, [editing, reset]);
+
+  const roleSelecionado = watch("role");
+  const predioIdDigitado = watch("predio_id");
+  const unidadeIdsSelecionadas = watch("unidade_ids");
+
+  // Escopo do combo de unidades: administrador digita o predio_id na hora de
+  // criar; ao editar, usa o predio do proprio usuario editado; qualquer
+  // outro gestor (sindico) so gerencia o proprio predio, ja implicito.
+  const predioIdParaCombo = editing
+    ? editing.predio_id
+    : souAdministrador
+      ? (predioIdDigitado?.trim() ? Number(predioIdDigitado.trim()) : null)
+      : currentUser?.predio_id ?? null;
+
+  const { data: unidadesCombo } = useQuery({
+    queryKey: ["unidades", "combo", predioIdParaCombo],
+    queryFn: () => listUnidades(predioIdParaCombo),
+    enabled: predioIdParaCombo != null && roleSelecionado !== "administrador",
+  });
+
+  function toggleUnidade(id: number): void {
+    const atual = unidadeIdsSelecionadas ?? [];
+    setValue(
+      "unidade_ids",
+      atual.includes(id) ? atual.filter((u) => u !== id) : [...atual, id],
+      { shouldValidate: true }
+    );
+  }
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["usuarios"] });
 
@@ -93,7 +115,7 @@ export function UsuariosPage() {
     mutationFn: createUsuario,
     onSuccess: () => {
       invalidate();
-      reset({ email: "", full_name: "", role: "morador", unidade_ids: "", predio_id: "", password: "" });
+      reset({ email: "", full_name: "", role: "morador", unidade_ids: [], predio_id: "", password: "" });
     },
   });
 
@@ -110,14 +132,13 @@ export function UsuariosPage() {
   const anonimizarMutation = useMutation({ mutationFn: anonimizarUsuario, onSuccess: invalidate });
 
   function onSubmit(values: UsuarioFormValues): void {
-    const unidadeIds = parseUnidadeIds(values.unidade_ids);
     const predioId = values.predio_id?.trim();
 
     if (editing) {
       const input: UsuarioUpdateInput = {
         full_name: values.full_name,
         role: values.role,
-        unidade_ids: values.role === "administrador" ? [] : unidadeIds,
+        unidade_ids: values.role === "administrador" ? [] : values.unidade_ids,
       };
       if (values.password) {
         input.password = values.password;
@@ -133,7 +154,7 @@ export function UsuariosPage() {
       email: values.email,
       full_name: values.full_name,
       role: values.role,
-      unidade_ids: values.role === "administrador" ? [] : unidadeIds,
+      unidade_ids: values.role === "administrador" ? [] : values.unidade_ids,
       predio_id: predioId ? Number(predioId) : undefined,
       password: values.password,
     };
@@ -177,30 +198,18 @@ export function UsuariosPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Papel</label>
-            <select
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              {...register("role")}
-            >
-              {ROLES.filter((role) => role !== "administrador" || souAdministrador).map((role) => (
-                <option key={role} value={role}>
-                  {ROLE_LABELS[role]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
-              ID(s) da(s) unidade(s)
-            </label>
-            <input
-              placeholder="Ex.: 12, 13"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              {...register("unidade_ids")}
-            />
-          </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600">Papel</label>
+          <select
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            {...register("role")}
+          >
+            {ROLES.filter((role) => role !== "administrador" || souAdministrador).map((role) => (
+              <option key={role} value={role}>
+                {ROLE_LABELS[role]}
+              </option>
+            ))}
+          </select>
         </div>
 
         {souAdministrador && !editing && (
@@ -213,6 +222,35 @@ export function UsuariosPage() {
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               {...register("predio_id")}
             />
+          </div>
+        )}
+
+        {roleSelecionado !== "administrador" && (
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Unidade(s)</label>
+            <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-slate-300 p-2">
+              {unidadesCombo?.map((unidade) => (
+                <label
+                  key={unidade.id}
+                  className="flex items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-slate-50"
+                >
+                  <input
+                    type="checkbox"
+                    checked={(unidadeIdsSelecionadas ?? []).includes(unidade.id)}
+                    onChange={() => toggleUnidade(unidade.id)}
+                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
+                  />
+                  Bloco {unidade.bloco} - {unidade.numero}
+                </label>
+              ))}
+              {(!unidadesCombo || unidadesCombo.length === 0) && (
+                <p className="px-2 py-1 text-xs text-slate-400">
+                  {souAdministrador && !predioIdDigitado?.trim()
+                    ? "Informe o ID do prédio acima para listar as unidades."
+                    : "Nenhuma unidade cadastrada neste prédio."}
+                </p>
+              )}
+            </div>
           </div>
         )}
 
