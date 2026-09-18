@@ -1,10 +1,12 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { AppShell } from "../components/layout/AppShell";
 import { useAuth } from "../auth/AuthContext";
 import { temPapel } from "../auth/roles";
 import { listAvisosMural } from "../api/avisosMural";
 import { listAvisosDiretos } from "../api/avisosDiretos";
 import { aceitarConsentimentoLgpd, revogarConsentimentoLgpd } from "../api/usuarios";
+import { listUnidades } from "../api/unidades";
+import { getPreviaUnidade } from "../api/transparencia";
 
 const ROLE_LABELS: Record<string, string> = {
   morador: "Morador",
@@ -19,8 +21,17 @@ const TIPO_AVISO_DIRETO_LABEL: Record<string, string> = {
   multa: "Multa",
 };
 
+const MESES_ABREV = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
 function formatarData(data: string): string {
   return new Date(data).toLocaleDateString("pt-BR");
+}
+
+function formatarValor(valor: string): string {
+  const numero = Number(valor);
+  return Number.isFinite(numero)
+    ? numero.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+    : valor;
 }
 
 export function Dashboard() {
@@ -47,6 +58,25 @@ export function Dashboard() {
     queryKey: ["avisos-diretos", "proprio"],
     queryFn: () => listAvisosDiretos(),
     enabled: recebeAvisoDireto,
+  });
+
+  const hoje = new Date();
+  const anoAtual = hoje.getFullYear();
+  const mesAtual = hoje.getMonth() + 1;
+
+  const { data: minhasUnidades } = useQuery({
+    queryKey: ["unidades", "minhas"],
+    queryFn: () => listUnidades(),
+    enabled: recebeAvisoDireto,
+    select: (todas) => todas.filter((u) => user?.unidade_ids.includes(u.id)),
+  });
+
+  const previasPorUnidade = useQueries({
+    queries: (minhasUnidades ?? []).map((unidade) => ({
+      queryKey: ["previa-unidade", unidade.id, anoAtual, mesAtual],
+      queryFn: () => getPreviaUnidade({ unidadeId: unidade.id, ano: anoAtual, mes: mesAtual }),
+      enabled: recebeAvisoDireto,
+    })),
   });
 
   return (
@@ -125,6 +155,49 @@ export function Dashboard() {
               </li>
             )}
           </ul>
+        </div>
+      )}
+
+      {recebeAvisoDireto && minhasUnidades && minhasUnidades.length > 0 && (
+        <div className="mt-6">
+          <h2 className="mb-2 text-sm font-semibold text-slate-700">
+            Prévia do condomínio ({MESES_ABREV[mesAtual - 1]}/{anoAtual})
+          </h2>
+          <div className="space-y-3">
+            {minhasUnidades.map((unidade, indice) => {
+              const previa = previasPorUnidade[indice];
+              return (
+                <div key={unidade.id} className="rounded-xl bg-white p-3 shadow-sm">
+                  <p className="mb-2 text-sm font-medium text-slate-800">
+                    Bloco {unidade.bloco} - {unidade.numero}
+                  </p>
+                  {previa?.isLoading && <p className="text-sm text-slate-500">Carregando...</p>}
+                  {previa?.data && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="rounded-lg bg-slate-50 p-2 text-center">
+                        <p className="text-xs text-slate-500">Rateio</p>
+                        <p className="text-sm font-semibold text-slate-700">
+                          {formatarValor(previa.data.total_rateio)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-slate-50 p-2 text-center">
+                        <p className="text-xs text-slate-500">Multas</p>
+                        <p className="text-sm font-semibold text-red-700">
+                          {formatarValor(previa.data.total_multas)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-slate-50 p-2 text-center">
+                        <p className="text-xs text-slate-500">Total</p>
+                        <p className="text-sm font-semibold text-slate-800">
+                          {formatarValor(previa.data.total_geral)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
