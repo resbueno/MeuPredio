@@ -1,48 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import logoFull from "../assets/logo-full.png";
 import logoIcon from "../assets/logo-icon.png";
-
-interface BuildingArtProps {
-  className?: string;
-  rows?: number;
-  cols?: number;
-}
-
-// Silhueta de prédio à noite, gerada em CSS (sem depender de foto externa) -
-// janelas acesas em posição determinística (seed fixa) para não "piscar"
-// entre renders.
-function BuildingArt({ className = "", rows = 12, cols = 10 }: BuildingArtProps) {
-  const total = rows * cols;
-  const janelas = Array.from({ length: total }, (_, i) => {
-    const seed = (i * 37 + 11) % 97;
-    if (seed < 78) return "unlit";
-    if (seed < 90) return "dim";
-    return "lit";
-  });
-
-  return (
-    <div className={`relative overflow-hidden bg-gradient-to-br from-[#060a1f] via-[#0b1638] to-[#13214f] ${className}`}>
-      <div
-        className="grid h-full w-full gap-[4px] p-4"
-        style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
-      >
-        {janelas.map((estado, i) => (
-          <div
-            key={i}
-            className={
-              estado === "lit"
-                ? "rounded-[1px] bg-amber-200/85"
-                : estado === "dim"
-                  ? "rounded-[1px] bg-brand-300/30"
-                  : "rounded-[1px] bg-white/[0.04]"
-            }
-          />
-        ))}
-      </div>
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/10 to-transparent" />
-    </div>
-  );
-}
+import fotoHero from "../assets/landing-hero.jpg";
+import fotoDestaque from "../assets/landing-destaque.jpg";
 
 const RECURSOS = [
   {
@@ -207,7 +167,11 @@ export function LandingPage() {
           </div>
 
           <div className="relative">
-            <BuildingArt className="aspect-[4/3] w-full rounded-2xl shadow-xl" rows={14} cols={12} />
+            <img
+              src={fotoHero}
+              alt="Fachada de um condomínio residencial à noite, com janelas acesas"
+              className="aspect-[4/3] w-full rounded-2xl object-cover shadow-xl"
+            />
             <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-lg backdrop-blur">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -244,7 +208,12 @@ export function LandingPage() {
           ))}
 
           <div className="relative overflow-hidden rounded-2xl shadow-sm sm:col-span-2 lg:col-span-1">
-            <BuildingArt className="h-full min-h-[220px] w-full" rows={16} cols={8} />
+            <img
+              src={fotoDestaque}
+              alt="Fachada de um edifício residencial com varandas iluminadas ao entardecer"
+              className="h-full min-h-[220px] w-full object-cover"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/10 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-5">
               <p className="text-sm font-semibold text-white">Prédio em destaque</p>
               <p className="mt-1 text-xs text-white/80">
@@ -253,6 +222,11 @@ export function LandingPage() {
             </div>
           </div>
         </div>
+
+        <p className="mt-8 text-center text-sm font-medium text-slate-500">
+          Feito para condomínios de qualquer porte — de pequenos prédios residenciais a médios e
+          grandes complexos.
+        </p>
       </section>
 
       {/* Visão unificada */}
@@ -383,7 +357,7 @@ export function LandingPage() {
             <span className="hover:text-ink">Segurança</span>
             <span className="hover:text-ink">Suporte</span>
           </nav>
-          <p className="text-xs text-slate-400">Produto digital para uma gestão condominial mais simples.</p>
+          <p className="text-xs text-slate-400">Desenvolvido por Renato Bueno - RBBrDev</p>
         </div>
       </footer>
     </div>
