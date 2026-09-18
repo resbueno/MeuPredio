@@ -13,6 +13,7 @@ from app.routers import (
     health,
     ocorrencias,
     predios,
+    reunioes,
     tickets,
     transparencia,
     unidades,
@@ -53,3 +54,4 @@ app.include_router(tickets.router)
 app.include_router(avisos_mural.router)
 app.include_router(avisos_diretos.router)
 app.include_router(ocorrencias.router)
+app.include_router(reunioes.router)

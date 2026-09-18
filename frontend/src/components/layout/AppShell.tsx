@@ -23,6 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/avisos-diretos", label: "Avisos Diretos", roles: ["administrador", "sindico", "morador", "proprietario"] },
   { to: "/ocorrencias", label: "Ocorrências" },
   { to: "/tickets", label: "Chamados" },
+  { to: "/reunioes", label: "Reuniões" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

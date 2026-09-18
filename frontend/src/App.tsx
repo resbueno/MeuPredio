@@ -15,6 +15,7 @@ import { TicketsPage } from "./pages/tickets/TicketsPage";
 import { AvisosPage } from "./pages/avisos/AvisosPage";
 import { AvisosDiretosPage } from "./pages/avisos/AvisosDiretosPage";
 import { OcorrenciasPage } from "./pages/ocorrencias/OcorrenciasPage";
+import { ReunioesPage } from "./pages/reunioes/ReunioesPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -115,6 +116,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <OcorrenciasPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reunioes"
+              element={
+                <ProtectedRoute>
+                  <ReunioesPage />
                 </ProtectedRoute>
               }
             />

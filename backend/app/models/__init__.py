@@ -11,6 +11,8 @@ from app.models.ocorrencia import Ocorrencia  # noqa: F401
 from app.models.predio import Predio  # noqa: F401
 from app.models.predio_convite import PredioConvite  # noqa: F401
 from app.models.rateio_despesa_item import RateioDespesaItem  # noqa: F401
+from app.models.reuniao import Reuniao  # noqa: F401
+from app.models.reuniao_presenca import ReuniaoPresenca  # noqa: F401
 from app.models.ticket_atendimento import TicketAtendimento  # noqa: F401
 from app.models.ticket_comentario import TicketComentario  # noqa: F401
 from app.models.unidade import Unidade  # noqa: F401
@@ -29,6 +31,8 @@ __all__ = [
     "Predio",
     "PredioConvite",
     "RateioDespesaItem",
+    "Reuniao",
+    "ReuniaoPresenca",
     "TicketAtendimento",
     "TicketComentario",
     "AvisoMural",

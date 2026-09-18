@@ -372,3 +372,49 @@ export interface OcorrenciaAtualizarInput {
   titulo?: string;
   descricao?: string;
 }
+
+export type TipoReuniaoEnum = "ordinaria" | "extraordinaria";
+export type StatusReuniaoEnum = "convocada" | "realizada" | "cancelada";
+
+export interface ReuniaoPresenca {
+  id: number;
+  reuniao_id: number;
+  unidade_id: number;
+  created_by: number | null;
+  created_at: string;
+}
+
+export interface Reuniao {
+  id: number;
+  predio_id: number;
+  tipo: TipoReuniaoEnum;
+  status: StatusReuniaoEnum;
+  titulo: string;
+  data_hora: string;
+  local: string;
+  pauta: string;
+  ata: string | null;
+  ata_registrada_em: string | null;
+  ata_registrada_por: number | null;
+  created_by: number | null;
+  presencas: ReuniaoPresenca[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReuniaoCreateInput {
+  tipo: TipoReuniaoEnum;
+  titulo: string;
+  data_hora: string;
+  local: string;
+  pauta: string;
+  predio_id?: number | null;
+}
+
+export interface ReuniaoAtualizarInput {
+  tipo?: TipoReuniaoEnum;
+  titulo?: string;
+  data_hora?: string;
+  local?: string;
+  pauta?: string;
+}

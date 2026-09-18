@@ -82,3 +82,18 @@ class TipoAvisoDiretoEnum(str, enum.Enum):
     AVISO = "aviso"
     ADVERTENCIA = "advertencia"
     MULTA = "multa"
+
+
+class TipoReuniaoEnum(str, enum.Enum):
+    ORDINARIA = "ordinaria"
+    EXTRAORDINARIA = "extraordinaria"
+
+
+class StatusReuniaoEnum(str, enum.Enum):
+    """'convocada' aceita confirmação de presença e edição; some da lista
+    de convocações ativas assim que vira 'realizada' (ata registrada) ou
+    'cancelada' - nunca as duas coisas ao mesmo tempo."""
+
+    CONVOCADA = "convocada"
+    REALIZADA = "realizada"
+    CANCELADA = "cancelada"

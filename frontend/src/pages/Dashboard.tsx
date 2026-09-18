@@ -7,6 +7,8 @@ import { listAvisosDiretos } from "../api/avisosDiretos";
 import { aceitarConsentimentoLgpd, revogarConsentimentoLgpd } from "../api/usuarios";
 import { listUnidades } from "../api/unidades";
 import { getPreviaUnidade } from "../api/transparencia";
+import { listReunioes } from "../api/reunioes";
+import type { TipoReuniaoEnum } from "../api/types";
 
 const ROLE_LABELS: Record<string, string> = {
   morador: "Morador",
@@ -23,8 +25,22 @@ const TIPO_AVISO_DIRETO_LABEL: Record<string, string> = {
 
 const MESES_ABREV = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
+const TIPO_REUNIAO_LABEL: Record<TipoReuniaoEnum, string> = {
+  ordinaria: "Ordinária",
+  extraordinaria: "Extraordinária",
+};
+
 function formatarData(data: string): string {
   return new Date(data).toLocaleDateString("pt-BR");
+}
+
+function formatarConvocacao(dataHora: string): { data: string; diaSemana: string; hora: string } {
+  const d = new Date(dataHora);
+  return {
+    data: d.toLocaleDateString("pt-BR"),
+    diaSemana: d.toLocaleDateString("pt-BR", { weekday: "long" }),
+    hora: d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+  };
 }
 
 function formatarValor(valor: string): string {
@@ -58,6 +74,12 @@ export function Dashboard() {
     queryKey: ["avisos-diretos", "proprio"],
     queryFn: () => listAvisosDiretos(),
     enabled: recebeAvisoDireto,
+  });
+
+  const { data: convocacoes, isLoading: carregandoConvocacoes } = useQuery({
+    queryKey: ["reunioes", "proprio", "convocada"],
+    queryFn: () => listReunioes({ status: "convocada" }),
+    enabled: !souAdministrador,
   });
 
   const hoje = new Date();
@@ -128,6 +150,37 @@ export function Dashboard() {
           </p>
         </div>
       </div>
+
+      {!souAdministrador && (
+        <div className="mt-6">
+          <h2 className="mb-2 text-sm font-semibold text-slate-700">Próximas reuniões</h2>
+          {carregandoConvocacoes && <p className="text-sm text-slate-500">Carregando...</p>}
+          <ul className="space-y-2">
+            {convocacoes?.map((reuniao) => {
+              const { data, diaSemana, hora } = formatarConvocacao(reuniao.data_hora);
+              return (
+                <li key={reuniao.id} className="rounded-xl bg-white p-3 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium text-slate-800">{reuniao.titulo}</p>
+                    <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                      {TIPO_REUNIAO_LABEL[reuniao.tipo]}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm capitalize text-slate-600">
+                    {diaSemana}, {data} às {hora}
+                  </p>
+                  <p className="text-xs text-slate-500">{reuniao.local}</p>
+                </li>
+              );
+            })}
+            {convocacoes?.length === 0 && (
+              <li className="rounded-xl bg-white p-4 text-center text-sm text-slate-500 shadow-sm">
+                Nenhuma reunião convocada no momento.
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
 
       {recebeAvisoDireto && (
         <div className="mt-6">
