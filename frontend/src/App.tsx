@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { AuthProvider } from "./auth/AuthContext";
+import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { SplashScreen } from "./components/SplashScreen";
 import { Login } from "./pages/Login";
 import { Cadastro } from "./pages/Cadastro";
 import { Dashboard } from "./pages/Dashboard";
+import { LandingPage } from "./pages/LandingPage";
 import { UsuariosPage } from "./pages/usuarios/UsuariosPage";
 import { PrediosPage } from "./pages/predios/PrediosPage";
 import { UnidadesPage } from "./pages/unidades/UnidadesPage";
@@ -24,6 +26,15 @@ const queryClient = new QueryClient({
   },
 });
 
+// Raiz pública: visitante não logado vê a landing page institucional,
+// usuário autenticado vai direto para o próprio painel - mesma URL, duas
+// telas diferentes conforme sessão.
+function HomeRoute() {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return <SplashScreen />;
+  return user ? <Dashboard /> : <LandingPage />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -32,14 +43,7 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro/:token" element={<Cadastro />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/" element={<HomeRoute />} />
             <Route
               path="/predios"
               element={
