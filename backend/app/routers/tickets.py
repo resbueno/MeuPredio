@@ -39,9 +39,9 @@ def _client_ip(request: Request) -> str | None:
 def _ticket_ou_404(db: Session, ticket_id: int, current_user: Usuario) -> TicketAtendimento:
     ticket = db.get(TicketAtendimento, ticket_id)
     if ticket is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chamado nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chamado não encontrado.")
     if current_user.role != RoleEnum.ADMINISTRADOR and ticket.predio_id != current_user.predio_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chamado nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chamado não encontrado.")
     return ticket
 
 
@@ -51,14 +51,14 @@ def _exigir_pode_ver(ticket: TicketAtendimento, current_user: Usuario) -> None:
     administrador) ve todos os do predio."""
     e_gestao = current_user.role in _GESTAO
     if not e_gestao and ticket.created_by != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chamado nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chamado não encontrado.")
 
 
 def _exigir_status(ticket: TicketAtendimento, permitidos: tuple[StatusTicketEnum, ...], acao: str) -> None:
     if ticket.status not in permitidos:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Nao e possivel {acao} um chamado com status atual '{ticket.status.value}'.",
+            detail=f"Não é possível {acao} um chamado com status atual '{ticket.status.value}'.",
         )
 
 
@@ -67,7 +67,7 @@ def _validar_unidade(db: Session, unidade_id: int | None, predio_id: int) -> Non
         return
     unidade = db.get(Unidade, unidade_id)
     if unidade is None or unidade.deleted_at is not None or unidade.predio_id != predio_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade nao encontrada.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade não encontrada.")
 
 
 @router.post("", response_model=TicketAtendimentoRead, status_code=status.HTTP_201_CREATED)
@@ -156,7 +156,7 @@ def atualizar_ticket(
     if ticket.created_by != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="So quem abriu o chamado pode edita-lo.",
+            detail="Só quem abriu o chamado pode editá-lo.",
         )
     _exigir_status(ticket, (StatusTicketEnum.ABERTO,), "editar")
 
@@ -209,7 +209,7 @@ def assumir_ticket(
             or responsavel.predio_id != ticket.predio_id
         ):
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Responsavel nao encontrado."
+                status_code=status.HTTP_404_NOT_FOUND, detail="Responsável não encontrado."
             )
 
     dados_antes = model_to_audit_dict(ticket)

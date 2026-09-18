@@ -18,8 +18,8 @@ const ROLES: RoleEnum[] = ["morador", "proprietario", "sindico", "zelador", "adm
 
 const ROLE_LABELS: Record<RoleEnum, string> = {
   morador: "Morador",
-  proprietario: "Proprietario",
-  sindico: "Sindico",
+  proprietario: "Proprietário",
+  sindico: "Síndico",
   zelador: "Zelador",
   administrador: "Administrador",
 };
@@ -34,7 +34,7 @@ function parseUnidadeIds(texto: string | undefined): number[] {
 }
 
 const usuarioSchema = z.object({
-  email: z.string().min(1, "Informe o e-mail.").email("Informe um e-mail valido."),
+  email: z.string().min(1, "Informe o e-mail.").email("Informe um e-mail válido."),
   full_name: z.string().min(2, "Informe o nome completo."),
   role: z.enum(["morador", "proprietario", "sindico", "zelador", "administrador"]),
   unidade_ids: z.string().optional(),
@@ -144,7 +144,7 @@ export function UsuariosPage() {
 
   return (
     <AppShell>
-      <h1 className="mb-4 text-xl font-bold text-slate-800">Usuarios</h1>
+      <h1 className="mb-4 text-xl font-bold text-slate-800">Usuários</h1>
 
       <form
         onSubmit={handleSubmit(onSubmit)}
@@ -152,7 +152,7 @@ export function UsuariosPage() {
         noValidate
       >
         <h2 className="text-sm font-semibold text-slate-700">
-          {editing ? `Editar usuario #${editing.id}` : "Novo usuario"}
+          {editing ? `Editar usuário #${editing.id}` : "Novo usuário"}
         </h2>
 
         <div>
@@ -206,7 +206,7 @@ export function UsuariosPage() {
         {souAdministrador && !editing && (
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">
-              ID do predio (obrigatorio quando o papel nao e administrador)
+              ID do prédio (obrigatório quando o papel não é administrador)
             </label>
             <input
               inputMode="numeric"
@@ -225,12 +225,12 @@ export function UsuariosPage() {
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             {...register("password")}
           />
-          <p className="mt-1 text-xs text-slate-400">Minimo 8 caracteres, com letras e numeros.</p>
+          <p className="mt-1 text-xs text-slate-400">Mínimo 8 caracteres, com letras e números.</p>
         </div>
 
         {erroMutacao && (
           <p className="text-sm text-red-600">
-            Nao foi possivel salvar o usuario. Verifique os dados e tente novamente.
+            Não foi possível salvar o usuário. Verifique os dados e tente novamente.
           </p>
         )}
 
@@ -291,7 +291,7 @@ export function UsuariosPage() {
                     onClick={() => {
                       if (
                         window.confirm(
-                          "Anonimizar este usuario e irreversivel e remove seus dados pessoais. Continuar?"
+                          "Anonimizar este usuário é irreversível e remove seus dados pessoais. Continuar?"
                         )
                       ) {
                         anonimizarMutation.mutate(usuario.id);
@@ -308,7 +308,7 @@ export function UsuariosPage() {
         ))}
         {usuarios?.length === 0 && (
           <li className="rounded-xl bg-white p-4 text-center text-sm text-slate-500 shadow-sm">
-            Nenhum usuario cadastrado.
+            Nenhum usuário cadastrado.
           </li>
         )}
       </ul>

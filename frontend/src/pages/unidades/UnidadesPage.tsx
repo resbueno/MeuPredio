@@ -10,7 +10,7 @@ import type { Unidade, UnidadeInput } from "../../api/types";
 
 const unidadeSchema = z.object({
   bloco: z.string().min(1, "Informe o bloco."),
-  numero: z.string().min(1, "Informe o numero."),
+  numero: z.string().min(1, "Informe o número."),
   predio_id: z.string().optional(),
 });
 
@@ -112,7 +112,7 @@ export function UnidadesPage() {
               {errors.bloco && <p className="mt-1 text-xs text-red-600">{errors.bloco.message}</p>}
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Numero</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Número</label>
               <input
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 {...register("numero")}
@@ -125,7 +125,7 @@ export function UnidadesPage() {
           {souAdministrador && !editing && (
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">
-                ID do predio (obrigatorio para administrador)
+                ID do prédio (obrigatório para administrador)
               </label>
               <input
                 inputMode="numeric"
@@ -133,14 +133,14 @@ export function UnidadesPage() {
                 {...register("predio_id")}
               />
               <p className="mt-1 text-xs text-slate-400">
-                Sindico nao precisa preencher - a unidade sempre vai para o proprio predio.
+                Síndico não precisa preencher - a unidade sempre vai para o próprio prédio.
               </p>
             </div>
           )}
 
           {erroMutacao && (
             <p className="text-sm text-red-600">
-              Nao foi possivel salvar a unidade. Verifique os dados e tente novamente.
+              Não foi possível salvar a unidade. Verifique os dados e tente novamente.
             </p>
           )}
 

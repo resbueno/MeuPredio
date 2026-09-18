@@ -27,18 +27,18 @@ def _client_ip(request: Request) -> str | None:
 def _veiculo_ou_404(db: Session, veiculo_id: int) -> Veiculo:
     veiculo = db.get(Veiculo, veiculo_id)
     if veiculo is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Veiculo nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Veículo não encontrado.")
     return veiculo
 
 
 def _validar_unidade(db: Session, unidade_id: int, current_user: Usuario) -> Unidade:
     unidade = db.get(Unidade, unidade_id)
     if unidade is None or unidade.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade nao encontrada.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade não encontrada.")
     # Isolamento multi-tenant: um síndico/zelador não cadastra veículo em
     # unidade de outro prédio (administrador, sem prédio, fica de fora).
     if current_user.role != RoleEnum.ADMINISTRADOR and unidade.predio_id != current_user.predio_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade nao encontrada.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade não encontrada.")
     return unidade
 
 
@@ -52,7 +52,7 @@ def _autorizar_acesso_morador(current_user: Usuario, veiculo: Veiculo) -> None:
     if veiculo.unidade_id not in minhas_unidades:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Voce so pode acessar veiculos das suas proprias unidades.",
+            detail="Você só pode acessar veículos das suas próprias unidades.",
         )
 
 

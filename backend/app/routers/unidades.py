@@ -25,7 +25,7 @@ def _client_ip(request: Request) -> str | None:
 def _unidade_ou_404(db: Session, unidade_id: int) -> Unidade:
     unidade = db.get(Unidade, unidade_id)
     if unidade is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade nao encontrada.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade não encontrada.")
     return unidade
 
 
@@ -37,7 +37,7 @@ def _autorizar_mesmo_predio(current_user: Usuario, unidade: Unidade) -> None:
     if current_user.role == RoleEnum.ADMINISTRADOR:
         return
     if current_user.predio_id != unidade.predio_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade nao encontrada.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade não encontrada.")
 
 
 @router.post("", response_model=UnidadeRead, status_code=status.HTTP_201_CREATED)
@@ -63,7 +63,7 @@ def criar_unidade(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Ja existe uma unidade com este bloco e numero neste predio.",
+            detail="Já existe uma unidade com este bloco e número neste prédio.",
         ) from None
 
     registrar_log(
@@ -142,7 +142,7 @@ def atualizar_unidade(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Ja existe uma unidade com este bloco e numero neste predio.",
+            detail="Já existe uma unidade com este bloco e número neste prédio.",
         ) from None
 
     registrar_log(

@@ -22,7 +22,7 @@ import type {
 } from "../../api/types";
 
 const ticketSchema = z.object({
-  titulo: z.string().min(2, "Informe um titulo."),
+  titulo: z.string().min(2, "Informe um título."),
   descricao: z.string().min(2, "Descreva o chamado."),
   categoria: z.enum(["manutencao", "duvida", "solicitacao", "outro"]),
   prioridade: z.enum(["baixa", "media", "alta"]),
@@ -38,15 +38,15 @@ const FORM_VAZIO: TicketFormValues = {
 };
 
 const CATEGORIA_LABEL: Record<CategoriaTicketEnum, string> = {
-  manutencao: "Manutencao",
-  duvida: "Duvida",
-  solicitacao: "Solicitacao",
+  manutencao: "Manutenção",
+  duvida: "Dúvida",
+  solicitacao: "Solicitação",
   outro: "Outro",
 };
 
 const PRIORIDADE_LABEL: Record<PrioridadeTicketEnum, string> = {
   baixa: "Baixa",
-  media: "Media",
+  media: "Média",
   alta: "Alta",
 };
 
@@ -87,7 +87,7 @@ function ComentarioForm({ ticketId }: { ticketId: number }) {
       <input
         value={mensagem}
         onChange={(event) => setMensagem(event.target.value)}
-        placeholder="Escrever um comentario..."
+        placeholder="Escrever um comentário..."
         className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
       />
       <button
@@ -189,7 +189,7 @@ export function TicketsPage() {
 
       {souAdministrador && (
         <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
-          <label className="mb-1 block text-xs font-medium text-slate-600">ID do predio</label>
+          <label className="mb-1 block text-xs font-medium text-slate-600">ID do prédio</label>
           <input
             inputMode="numeric"
             value={predioIdAdminInput}
@@ -206,7 +206,7 @@ export function TicketsPage() {
         </h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3" noValidate>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Titulo</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Título</label>
             <input
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               {...register("titulo")}
@@ -215,7 +215,7 @@ export function TicketsPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Descricao</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Descrição</label>
             <textarea
               rows={3}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
@@ -256,10 +256,10 @@ export function TicketsPage() {
           </div>
 
           {(createMutation.isError || updateMutation.isError) && (
-            <p className="text-sm text-red-600">Nao foi possivel salvar o chamado. Tente novamente.</p>
+            <p className="text-sm text-red-600">Não foi possível salvar o chamado. Tente novamente.</p>
           )}
           {bloqueadoSemPredio && (
-            <p className="text-sm text-amber-600">Informe o ID do predio acima para continuar.</p>
+            <p className="text-sm text-amber-600">Informe o ID do prédio acima para continuar.</p>
           )}
 
           <div className="flex gap-2">
@@ -268,7 +268,7 @@ export function TicketsPage() {
               disabled={isSubmitting || bloqueadoSemPredio}
               className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
             >
-              {editing ? "Salvar alteracoes" : "Abrir chamado"}
+              {editing ? "Salvar alterações" : "Abrir chamado"}
             </button>
             {editing && (
               <button
@@ -276,7 +276,7 @@ export function TicketsPage() {
                 onClick={limparFormulario}
                 className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600"
               >
-                Cancelar edicao
+                Cancelar edição
               </button>
             )}
           </div>
@@ -374,7 +374,7 @@ export function TicketsPage() {
                     </div>
                   ))}
                   {ticket.comentarios.length === 0 && (
-                    <p className="text-xs text-slate-400">Sem comentarios ainda.</p>
+                    <p className="text-xs text-slate-400">Sem comentários ainda.</p>
                   )}
                   <ComentarioForm ticketId={ticket.id} />
                 </div>

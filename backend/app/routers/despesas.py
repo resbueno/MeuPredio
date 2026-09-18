@@ -51,11 +51,11 @@ def _client_ip(request: Request) -> str | None:
 def _despesa_ou_404(db: Session, despesa_id: int, current_user: Usuario) -> DespesaLancamento:
     despesa = db.get(DespesaLancamento, despesa_id)
     if despesa is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Despesa nao encontrada.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Despesa não encontrada.")
     # Isolamento multi-tenant: síndico nunca acessa despesa de outro prédio,
     # nem por id direto (some como 404, não confirma existência).
     if current_user.role != RoleEnum.ADMINISTRADOR and despesa.predio_id != current_user.predio_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Despesa nao encontrada.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Despesa não encontrada.")
     return despesa
 
 
@@ -68,14 +68,14 @@ def _validar_fornecedor(db: Session, fornecedor_id: int | None, predio_id: int) 
         or fornecedor.deleted_at is not None
         or fornecedor.predio_id != predio_id
     ):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fornecedor nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fornecedor não encontrado.")
 
 
 def _exigir_pendente(despesa: DespesaLancamento, acao: str) -> None:
     if despesa.status != StatusDespesaEnum.PENDENTE:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"So e possivel {acao} um lancamento pendente (status atual: {despesa.status.value}).",
+            detail=f"Só é possível {acao} um lançamento pendente (status atual: {despesa.status.value}).",
         )
 
 
@@ -83,7 +83,7 @@ def _exigir_pago(despesa: DespesaLancamento, acao: str) -> None:
     if despesa.status != StatusDespesaEnum.PAGO:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"So e possivel {acao} um lancamento pago (status atual: {despesa.status.value}).",
+            detail=f"Só é possível {acao} um lançamento pago (status atual: {despesa.status.value}).",
         )
 
 
@@ -145,12 +145,12 @@ async def extrair_boleto(
     predio_id_resolvido = resolver_predio_id(current_user, predio_id)
     predio = db.get(Predio, predio_id_resolvido)
     if predio is None or predio.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Predio nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prédio não encontrado.")
     if not predio.groq_api_key_cifrada:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                "Este predio ainda nao tem a integracao de OCR (Groq) configurada "
+                "Este prédio ainda não tem a integração de OCR (Groq) configurada "
                 "(ver PUT /predios/{predio_id}/integracao-ocr)."
             ),
         )
@@ -158,7 +158,7 @@ async def extrair_boleto(
     if arquivo.content_type not in _MIME_TYPES_OCR_PERMITIDOS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Tipo de arquivo nao suportado. Envie uma imagem (JPEG/PNG/WEBP) ou PDF.",
+            detail="Tipo de arquivo não suportado. Envie uma imagem (JPEG/PNG/WEBP) ou PDF.",
         )
 
     conteudo = await arquivo.read()
@@ -216,11 +216,11 @@ def obter_documento(
     current_user: Usuario = Depends(require_role()),
 ) -> FileResponse:
     if current_user.role != RoleEnum.ADMINISTRADOR and current_user.predio_id != predio_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento não encontrado.")
 
     caminho = caminho_documento(predio_id, nome_arquivo)
     if caminho is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento não encontrado.")
     return FileResponse(caminho)
 
 
@@ -337,7 +337,7 @@ def ratear_despesa(
     if not unidades:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Nenhuma unidade ativa neste predio para ratear.",
+            detail="Nenhuma unidade ativa neste prédio para ratear.",
         )
 
     if payload.criterio == CriterioRateioEnum.FRACAO_IDEAL:
@@ -347,7 +347,7 @@ def ratear_despesa(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=(
                     "Todas as unidades ativas precisam ter fracao_ideal definida (>0) "
-                    f"para ratear por fracao ideal. Unidade(s) sem fracao_ideal: {sem_fracao}."
+                    f"para ratear por fração ideal. Unidade(s) sem fracao_ideal: {sem_fracao}."
                 ),
             )
         pesos = [(u.id, u.fracao_ideal) for u in unidades]
@@ -449,7 +449,7 @@ async def anexar_comprovante_pagamento(
     if arquivo.content_type not in _MIME_TYPES_OCR_PERMITIDOS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Tipo de arquivo nao suportado. Envie uma imagem (JPEG/PNG/WEBP) ou PDF.",
+            detail="Tipo de arquivo não suportado. Envie uma imagem (JPEG/PNG/WEBP) ou PDF.",
         )
 
     conteudo = await arquivo.read()

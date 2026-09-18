@@ -20,7 +20,7 @@ const STATUS_CLASSES: Record<StatusDespesaEnum, string> = {
 const MESES = [
   "Janeiro",
   "Fevereiro",
-  "Marco",
+  "Março",
   "Abril",
   "Maio",
   "Junho",
@@ -73,11 +73,11 @@ export function TransparenciaPage() {
 
   return (
     <AppShell>
-      <h1 className="mb-4 text-xl font-bold text-slate-800">Portal da Transparencia</h1>
+      <h1 className="mb-4 text-xl font-bold text-slate-800">Portal da Transparência</h1>
 
       {souAdministrador && (
         <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
-          <label className="mb-1 block text-xs font-medium text-slate-600">ID do predio</label>
+          <label className="mb-1 block text-xs font-medium text-slate-600">ID do prédio</label>
           <input
             inputMode="numeric"
             value={predioIdAdminInput}
@@ -90,7 +90,7 @@ export function TransparenciaPage() {
 
       <div className="mb-6 flex gap-3 rounded-2xl bg-white p-4 shadow-sm">
         <div className="flex-1">
-          <label className="mb-1 block text-xs font-medium text-slate-600">Mes</label>
+          <label className="mb-1 block text-xs font-medium text-slate-600">Mês</label>
           <select
             value={mes}
             onChange={(event) => setMes(Number(event.target.value))}
@@ -115,7 +115,7 @@ export function TransparenciaPage() {
       </div>
 
       {bloqueadoSemPredio && (
-        <p className="mb-4 text-sm text-amber-600">Informe o ID do predio acima para continuar.</p>
+        <p className="mb-4 text-sm text-amber-600">Informe o ID do prédio acima para continuar.</p>
       )}
 
       {!bloqueadoSemPredio && (
@@ -155,7 +155,7 @@ export function TransparenciaPage() {
             </div>
           )}
 
-          <h2 className="mb-2 text-sm font-semibold text-slate-700">Prestacao de contas</h2>
+          <h2 className="mb-2 text-sm font-semibold text-slate-700">Prestação de contas</h2>
           {carregandoDespesas && <p className="text-sm text-slate-500">Carregando...</p>}
           <ul className="space-y-2">
             {despesas?.map((despesa) => (
@@ -191,7 +191,7 @@ export function TransparenciaPage() {
             ))}
             {despesas?.length === 0 && (
               <li className="rounded-xl bg-white p-4 text-center text-sm text-slate-500 shadow-sm">
-                Nenhuma conta neste periodo.
+                Nenhuma conta neste período.
               </li>
             )}
           </ul>

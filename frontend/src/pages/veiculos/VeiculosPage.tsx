@@ -12,7 +12,7 @@ const TIPOS: TipoVeiculoEnum[] = ["carro", "moto", "outro"];
 
 const veiculoSchema = z.object({
   unidade_id: z.string().min(1, "Informe o id da unidade."),
-  placa: z.string().min(6, "Informe uma placa valida."),
+  placa: z.string().min(6, "Informe uma placa válida."),
   modelo: z.string().min(1, "Informe o modelo."),
   cor: z.string().min(1, "Informe a cor."),
   tipo: z.enum(["carro", "moto", "outro"]),
@@ -108,7 +108,7 @@ export function VeiculosPage() {
 
   return (
     <AppShell>
-      <h1 className="mb-4 text-xl font-bold text-slate-800">Veiculos</h1>
+      <h1 className="mb-4 text-xl font-bold text-slate-800">Veículos</h1>
 
       {podeGerenciar && (
         <form
@@ -117,7 +117,7 @@ export function VeiculosPage() {
           noValidate
         >
           <h2 className="text-sm font-semibold text-slate-700">
-            {editing ? `Editar veiculo #${editing.id}` : "Novo veiculo"}
+            {editing ? `Editar veículo #${editing.id}` : "Novo veículo"}
           </h2>
 
           <div>
@@ -179,7 +179,7 @@ export function VeiculosPage() {
 
           {erroMutacao && (
             <p className="text-sm text-red-600">
-              Nao foi possivel salvar o veiculo. Verifique os dados e tente novamente.
+              Não foi possível salvar o veículo. Verifique os dados e tente novamente.
             </p>
           )}
 
@@ -242,7 +242,7 @@ export function VeiculosPage() {
         ))}
         {veiculos?.length === 0 && (
           <li className="rounded-xl bg-white p-4 text-center text-sm text-slate-500 shadow-sm">
-            Nenhum veiculo cadastrado.
+            Nenhum veículo cadastrado.
           </li>
         )}
       </ul>

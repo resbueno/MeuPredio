@@ -28,11 +28,11 @@ def _client_ip(request: Request) -> str | None:
 def _fornecedor_ou_404(db: Session, fornecedor_id: int, current_user: Usuario) -> Fornecedor:
     fornecedor = db.get(Fornecedor, fornecedor_id)
     if fornecedor is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fornecedor nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fornecedor não encontrado.")
     # Isolamento multi-tenant: síndico nunca acessa fornecedor de outro
     # prédio, nem por id direto (some como 404, não confirma existência).
     if current_user.role != RoleEnum.ADMINISTRADOR and fornecedor.predio_id != current_user.predio_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fornecedor nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fornecedor não encontrado.")
     return fornecedor
 
 
@@ -49,7 +49,7 @@ def _validar_documento_unico(
     if query.first() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Ja existe um fornecedor cadastrado com este documento neste predio.",
+            detail="Já existe um fornecedor cadastrado com este documento neste prédio.",
         )
 
 

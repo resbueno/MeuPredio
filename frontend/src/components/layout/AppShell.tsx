@@ -11,13 +11,13 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/", label: "Inicio" },
-  { to: "/predios", label: "Predios", roles: ["administrador"] },
-  { to: "/usuarios", label: "Usuarios", roles: ["administrador", "sindico"] },
+  { to: "/", label: "Início" },
+  { to: "/predios", label: "Prédios", roles: ["administrador"] },
+  { to: "/usuarios", label: "Usuários", roles: ["administrador", "sindico"] },
   { to: "/unidades", label: "Unidades" },
-  { to: "/veiculos", label: "Veiculos" },
+  { to: "/veiculos", label: "Veículos" },
   { to: "/despesas", label: "Contas", roles: ["administrador", "sindico"] },
-  { to: "/transparencia", label: "Transparencia" },
+  { to: "/transparencia", label: "Transparência" },
   { to: "/tickets", label: "Chamados" },
 ];
 

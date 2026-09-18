@@ -45,7 +45,7 @@ def _client_ip(request: Request) -> str | None:
 def _predio_ou_404(db: Session, predio_id: int) -> Predio:
     predio = db.get(Predio, predio_id)
     if predio is None or predio.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Predio nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prédio não encontrado.")
     return predio
 
 
@@ -78,7 +78,7 @@ def criar_predio(
     if ja_existe is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Ja existe um predio cadastrado com este CEP e numero.",
+            detail="Já existe um prédio cadastrado com este CEP e número.",
         )
 
     predio = Predio(
@@ -157,7 +157,7 @@ def gerar_convite(
     if current_user.role == RoleEnum.SINDICO and current_user.predio_id != predio.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Voce so pode gerar convite para o proprio predio.",
+            detail="Você só pode gerar convite para o próprio prédio.",
         )
 
     db.query(PredioConvite).filter(
@@ -199,7 +199,7 @@ def revogar_convite(
     if current_user.role == RoleEnum.SINDICO and current_user.predio_id != predio.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Voce so pode revogar o convite do proprio predio.",
+            detail="Você só pode revogar o convite do próprio prédio.",
         )
 
     atualizados = (
@@ -226,7 +226,7 @@ def _autorizar_gestor_do_predio(current_user: Usuario, predio: Predio) -> None:
     if current_user.role == RoleEnum.SINDICO and current_user.predio_id != predio.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Voce so pode gerenciar o proprio predio.",
+            detail="Você só pode gerenciar o próprio prédio.",
         )
 
 
@@ -328,7 +328,7 @@ def identificar_predio(payload: PredioIdentificarRequest, db: Session = Depends(
     if predio is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nenhum predio encontrado para este CEP e numero.",
+            detail="Nenhum prédio encontrado para este CEP e número.",
         )
     return predio
 
@@ -336,7 +336,7 @@ def identificar_predio(payload: PredioIdentificarRequest, db: Session = Depends(
 def _convite_valido_ou_404(db: Session, token: str) -> PredioConvite:
     convite = db.query(PredioConvite).filter(PredioConvite.token == token).first()
     if convite is None or not convite.esta_valido:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Convite invalido ou expirado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Convite inválido ou expirado.")
     return convite
 
 
@@ -383,7 +383,7 @@ def autocadastro_via_convite(
     if ja_existe is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Ja existe um usuario com este e-mail neste predio.",
+            detail="Já existe um usuário com este e-mail neste prédio.",
         )
 
     unidades = (
@@ -398,7 +398,7 @@ def autocadastro_via_convite(
     if len(unidades) != len(set(payload.unidade_ids)):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Uma ou mais unidades informadas nao pertencem a este predio.",
+            detail="Uma ou mais unidades informadas não pertencem a este prédio.",
         )
 
     usuario = Usuario(

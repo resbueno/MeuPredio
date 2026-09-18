@@ -9,12 +9,12 @@ import { createPredio, gerarConvite, listPredios } from "../../api/predios";
 import type { Predio } from "../../api/types";
 
 const predioSchema = z.object({
-  nome: z.string().min(2, "Informe o nome do predio."),
-  cep: z.string().regex(/^\d{5}-?\d{3}$/, "CEP invalido (formato 00000-000)."),
-  numero: z.string().min(1, "Informe o numero do predio."),
+  nome: z.string().min(2, "Informe o nome do prédio."),
+  cep: z.string().regex(/^\d{5}-?\d{3}$/, "CEP inválido (formato 00000-000)."),
+  numero: z.string().min(1, "Informe o número do prédio."),
   complemento: z.string().optional(),
   unidades: z
-    .array(z.object({ bloco: z.string().min(1, "Bloco obrigatorio."), numero: z.string().min(1, "Numero obrigatorio.") }))
+    .array(z.object({ bloco: z.string().min(1, "Bloco obrigatório."), numero: z.string().min(1, "Número obrigatório.") }))
     .default([]),
 });
 
@@ -54,11 +54,11 @@ export function PrediosPage() {
     },
     onError: (err) => {
       if (axios.isAxiosError(err) && err.response?.status === 404) {
-        setErroCriacao("CEP nao encontrado.");
+        setErroCriacao("CEP não encontrado.");
       } else if (axios.isAxiosError(err) && err.response?.status === 409) {
-        setErroCriacao("Ja existe um predio cadastrado com este CEP e numero.");
+        setErroCriacao("Já existe um prédio cadastrado com este CEP e número.");
       } else {
-        setErroCriacao("Nao foi possivel cadastrar o predio.");
+        setErroCriacao("Não foi possível cadastrar o prédio.");
       }
     },
   });
@@ -92,20 +92,20 @@ export function PrediosPage() {
 
   return (
     <AppShell>
-      <h1 className="mb-4 text-xl font-bold text-slate-800">Predios</h1>
+      <h1 className="mb-4 text-xl font-bold text-slate-800">Prédios</h1>
 
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="mb-6 space-y-3 rounded-2xl bg-white p-4 shadow-sm"
         noValidate
       >
-        <h2 className="text-sm font-semibold text-slate-700">Novo predio</h2>
+        <h2 className="text-sm font-semibold text-slate-700">Novo prédio</h2>
 
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">Nome</label>
           <input
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            placeholder="Ex.: Edificio Aurora"
+            placeholder="Ex.: Edifício Aurora"
             {...register("nome")}
           />
           {errors.nome && <p className="mt-1 text-xs text-red-600">{errors.nome.message}</p>}
@@ -122,7 +122,7 @@ export function PrediosPage() {
             {errors.cep && <p className="mt-1 text-xs text-red-600">{errors.cep.message}</p>}
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Numero</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Número</label>
             <input
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               {...register("numero")}
@@ -154,7 +154,7 @@ export function PrediosPage() {
                   {...register(`unidades.${index}.bloco` as const)}
                 />
                 <input
-                  placeholder="Numero"
+                  placeholder="Número"
                   className="w-1/2 rounded-lg border border-slate-300 px-3 py-2 text-sm"
                   {...register(`unidades.${index}.numero` as const)}
                 />
@@ -184,7 +184,7 @@ export function PrediosPage() {
           disabled={isSubmitting}
           className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
         >
-          Cadastrar predio
+          Cadastrar prédio
         </button>
       </form>
 
@@ -229,7 +229,7 @@ export function PrediosPage() {
         })}
         {predios?.length === 0 && (
           <li className="rounded-xl bg-white p-4 text-center text-sm text-slate-500 shadow-sm">
-            Nenhum predio cadastrado.
+            Nenhum prédio cadastrado.
           </li>
         )}
       </ul>

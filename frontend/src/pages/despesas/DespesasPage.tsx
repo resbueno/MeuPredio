@@ -30,7 +30,7 @@ import type {
 } from "../../api/types";
 
 const despesaSchema = z.object({
-  descricao: z.string().min(2, "Informe a descricao."),
+  descricao: z.string().min(2, "Informe a descrição."),
   categoria: z.string().min(2, "Informe a categoria."),
   valor: z
     .string()
@@ -80,16 +80,16 @@ function observacoesSugeridas(extracao: ExtracaoBoleto): string {
 function mensagemErroExtracao(erro: unknown): string {
   if (axios.isAxiosError(erro)) {
     if (erro.response?.status === 409) {
-      return "Este predio ainda nao tem a integracao com o Groq configurada (veja abaixo).";
+      return "Este prédio ainda não tem a integração com o Groq configurada (veja abaixo).";
     }
     if (erro.response?.status === 422) {
-      return "Arquivo invalido - envie uma imagem (JPEG/PNG/WEBP) ou PDF de ate 10MB.";
+      return "Arquivo inválido - envie uma imagem (JPEG/PNG/WEBP) ou PDF de até 10MB.";
     }
     if (erro.response?.status === 502) {
-      return "Nao foi possivel processar o documento agora (Groq indisponivel ou limite de taxa atingido). Tente novamente em instantes, ou preencha manualmente.";
+      return "Não foi possível processar o documento agora (Groq indisponível ou limite de taxa atingido). Tente novamente em instantes, ou preencha manualmente.";
     }
   }
-  return "Nao foi possivel extrair os dados do documento. Preencha manualmente, se preferir.";
+  return "Não foi possível extrair os dados do documento. Preencha manualmente, se preferir.";
 }
 
 function IntegracaoOcrPanel({ predioId }: { predioId: number }) {
@@ -123,12 +123,12 @@ function IntegracaoOcrPanel({ predioId }: { predioId: number }) {
 
   return (
     <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-semibold text-slate-700">Leitura automatica de boletos (IA)</h2>
+      <h2 className="text-sm font-semibold text-slate-700">Leitura automática de boletos (IA)</h2>
       {integracao?.configurado ? (
         <div className="mt-2 flex items-center justify-between">
           <p className="text-sm text-emerald-700">
             <span className="font-medium">Configurada.</span> Conta do Groq vinculada a este
-            predio.
+            prédio.
           </p>
           <button
             type="button"
@@ -142,7 +142,7 @@ function IntegracaoOcrPanel({ predioId }: { predioId: number }) {
       ) : (
         <div className="mt-2 space-y-2">
           <p className="text-xs text-slate-500">
-            Cole aqui a chave de API do Groq de uma conta do proprio condominio
+            Cole aqui a chave de API do Groq de uma conta do próprio condomínio
             (console.groq.com) para poder extrair boletos automaticamente ao subir uma conta.
           </p>
           <div className="flex gap-2">
@@ -163,7 +163,7 @@ function IntegracaoOcrPanel({ predioId }: { predioId: number }) {
             </button>
           </div>
           {salvarMutation.isError && (
-            <p className="text-xs text-red-600">Nao foi possivel salvar a chave. Tente novamente.</p>
+            <p className="text-xs text-red-600">Não foi possível salvar a chave. Tente novamente.</p>
           )}
         </div>
       )}
@@ -289,7 +289,7 @@ export function DespesasPage() {
       return;
     }
     if (souAdministrador && !predioIdAdmin) {
-      setAvisoExtracao("Informe o ID do predio antes de enviar um documento.");
+      setAvisoExtracao("Informe o ID do prédio antes de enviar um documento.");
       event.target.value = "";
       return;
     }
@@ -324,7 +324,7 @@ export function DespesasPage() {
 
       {souAdministrador && (
         <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
-          <label className="mb-1 block text-xs font-medium text-slate-600">ID do predio</label>
+          <label className="mb-1 block text-xs font-medium text-slate-600">ID do prédio</label>
           <input
             inputMode="numeric"
             value={predioIdAdminInput}
@@ -333,7 +333,7 @@ export function DespesasPage() {
             placeholder="Ex.: 1"
           />
           <p className="mt-1 text-xs text-slate-400">
-            Administrador nao pertence a um predio - informe qual predio esta gerenciando.
+            Administrador não pertence a um prédio - informe qual prédio está gerenciando.
           </p>
         </div>
       )}
@@ -349,7 +349,7 @@ export function DespesasPage() {
           <label className="mb-1 block text-xs font-medium text-slate-600">
             {editing
               ? "Trocar foto ou PDF do boleto (opcional)"
-              : "Foto ou PDF do boleto (opcional - a IA preenche o formulario abaixo)"}
+              : "Foto ou PDF do boleto (opcional - a IA preenche o formulário abaixo)"}
           </label>
           <input
             ref={fileInputRef}
@@ -367,14 +367,14 @@ export function DespesasPage() {
             <p className="mt-1 text-xs text-emerald-600">
               {editing
                 ? "Documento anexado - revise os campos abaixo antes de salvar."
-                : "Dados extraidos - revise os campos abaixo antes de salvar."}
+                : "Dados extraídos - revise os campos abaixo antes de salvar."}
             </p>
           )}
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3" noValidate>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Descricao</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Descrição</label>
             <input
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               {...register("descricao")}
@@ -430,7 +430,7 @@ export function DespesasPage() {
 
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">
-              Observacoes (opcional)
+              Observações (opcional)
             </label>
             <textarea
               rows={2}
@@ -441,11 +441,11 @@ export function DespesasPage() {
 
           {(createMutation.isError || updateMutation.isError) && (
             <p className="text-sm text-red-600">
-              Nao foi possivel salvar a conta. Verifique os dados e tente novamente.
+              Não foi possível salvar a conta. Verifique os dados e tente novamente.
             </p>
           )}
           {bloqueadoSemPredio && (
-            <p className="text-sm text-amber-600">Informe o ID do predio acima para continuar.</p>
+            <p className="text-sm text-amber-600">Informe o ID do prédio acima para continuar.</p>
           )}
 
           <div className="flex gap-2">
@@ -454,14 +454,14 @@ export function DespesasPage() {
               disabled={isSubmitting || bloqueadoSemPredio}
               className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
             >
-              {editing ? "Salvar alteracoes" : "Salvar conta"}
+              {editing ? "Salvar alterações" : "Salvar conta"}
             </button>
             <button
               type="button"
               onClick={limparFormulario}
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600"
             >
-              {editing ? "Cancelar edicao" : "Limpar"}
+              {editing ? "Cancelar edição" : "Limpar"}
             </button>
           </div>
         </form>

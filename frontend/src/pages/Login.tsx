@@ -13,14 +13,14 @@ const predioSchema = z.object({
   cep: z
     .string()
     .min(1, "Informe o CEP.")
-    .regex(/^\d{5}-?\d{3}$/, "CEP invalido (formato 00000-000)."),
-  numero: z.string().min(1, "Informe o numero do predio."),
+    .regex(/^\d{5}-?\d{3}$/, "CEP inválido (formato 00000-000)."),
+  numero: z.string().min(1, "Informe o número do prédio."),
 });
 
 type PredioFormValues = z.infer<typeof predioSchema>;
 
 const credenciaisSchema = z.object({
-  email: z.string().min(1, "Informe o e-mail.").email("Informe um e-mail valido."),
+  email: z.string().min(1, "Informe o e-mail.").email("Informe um e-mail válido."),
   password: z.string().min(1, "Informe a senha."),
 });
 
@@ -117,9 +117,9 @@ export function Login() {
       setPredio(encontrado);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 404) {
-        setServerError("Nenhum predio encontrado para este CEP e numero.");
+        setServerError("Nenhum prédio encontrado para este CEP e número.");
       } else {
-        setServerError("Nao foi possivel verificar o predio agora. Tente novamente.");
+        setServerError("Não foi possível verificar o prédio agora. Tente novamente.");
       }
     }
   }
@@ -132,7 +132,7 @@ export function Login() {
       const destino = state?.from?.pathname ?? "/";
       navigate(destino, { replace: true });
     } catch {
-      setServerError("E-mail ou senha invalidos.");
+      setServerError("E-mail ou senha inválidos.");
     }
   }
 
@@ -160,9 +160,9 @@ export function Login() {
 
         {!etapaCredenciais && (
           <Cartao>
-            <h1 className="text-xl font-bold text-ink">Qual e o seu predio?</h1>
+            <h1 className="text-xl font-bold text-ink">Qual é o seu prédio?</h1>
             <p className="mb-6 mt-1 text-sm text-slate-500">
-              Informe o CEP e o numero do predio para continuar.
+              Informe o CEP e o número do prédio para continuar.
             </p>
 
             <form
@@ -196,7 +196,7 @@ export function Login() {
 
               <div>
                 <label htmlFor="numero" className="mb-1 block text-sm font-medium text-slate-700">
-                  Numero do predio
+                  Número do prédio
                 </label>
                 <div className="relative">
                   <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
@@ -246,7 +246,7 @@ export function Login() {
               onClick={voltar}
               className="mb-3 flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-slate-600"
             >
-              ← Trocar predio
+              ← Trocar prédio
             </button>
 
             <h1 className="text-xl font-bold text-ink">Entrar</h1>

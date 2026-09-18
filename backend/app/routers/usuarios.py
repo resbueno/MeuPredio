@@ -27,7 +27,7 @@ def _client_ip(request: Request) -> str | None:
 def _usuario_ou_404(db: Session, usuario_id: int) -> Usuario:
     usuario = db.get(Usuario, usuario_id)
     if usuario is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
     return usuario
 
 
@@ -40,10 +40,10 @@ def _autorizar_acesso_ou_self(current_user: Usuario, alvo: Usuario) -> None:
     if current_user.role not in _GESTORES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Voce so pode acessar o seu proprio cadastro.",
+            detail="Você só pode acessar o seu próprio cadastro.",
         )
     if current_user.role == RoleEnum.SINDICO and current_user.predio_id != alvo.predio_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
 
 
 def _validar_unidades(db: Session, unidade_ids: list[int], predio_id: int) -> list[Unidade]:
@@ -61,7 +61,7 @@ def _validar_unidades(db: Session, unidade_ids: list[int], predio_id: int) -> li
     if len(unidades) != len(set(unidade_ids)):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Uma ou mais unidades informadas nao existem neste predio.",
+            detail="Uma ou mais unidades informadas não existem neste prédio.",
         )
     return unidades
 
@@ -95,7 +95,7 @@ def criar_usuario(
         .first()
     )
     if email_em_uso is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="E-mail ja cadastrado.")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="E-mail já cadastrado.")
 
     usuario = Usuario(
         email=payload.email,
@@ -159,7 +159,7 @@ def obter_usuario(
     usuario = _usuario_ou_404(db, usuario_id)
     _autorizar_acesso_ou_self(current_user, usuario)
     if usuario.deleted_at is not None and current_user.role not in _GESTORES:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
     return usuario
 
 
@@ -181,7 +181,7 @@ def atualizar_usuario(
     if not is_gestor and campos_restritos_a_gestor.intersection(campos_enviados):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Voce nao tem permissao para alterar este campo.",
+            detail="Você não tem permissão para alterar este campo.",
         )
 
     novo_role = campos_enviados.get("role", usuario.role)
@@ -194,7 +194,7 @@ def atualizar_usuario(
     if "role" in campos_enviados and usuario.role == RoleEnum.ADMINISTRADOR and novo_role != RoleEnum.ADMINISTRADOR:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nao e possivel rebaixar um administrador para um papel vinculado a predio por aqui.",
+            detail="Não é possível rebaixar um administrador para um papel vinculado a prédio por aqui.",
         )
 
     dados_antes = model_to_audit_dict(usuario)
@@ -205,7 +205,7 @@ def atualizar_usuario(
         if usuario.role == RoleEnum.ADMINISTRADOR or novo_role == RoleEnum.ADMINISTRADOR:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Administrador nao pode estar vinculado a unidades.",
+                detail="Administrador não pode estar vinculado a unidades.",
             )
         usuario.unidades = _validar_unidades(db, campos_enviados["unidade_ids"], usuario.predio_id)
     if "role" in campos_enviados:
@@ -245,14 +245,14 @@ def remover_usuario(
     físico — preserva histórico para auditoria e possível restauração."""
     usuario = _usuario_ou_404(db, usuario_id)
     if current_user.role == RoleEnum.SINDICO and current_user.predio_id != usuario.predio_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario nao encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
     if usuario.deleted_at is not None:
         return None
 
     if usuario.id == current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Voce nao pode remover o proprio usuario.",
+            detail="Você não pode remover o próprio usuário.",
         )
 
     dados_antes = model_to_audit_dict(usuario)
@@ -291,7 +291,7 @@ def anonimizar_usuario(
     """
     usuario = _usuario_ou_404(db, usuario_id)
     if usuario.anonymized_at is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Usuario ja foi anonimizado.")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Usuário já foi anonimizado.")
 
     dados_antes = model_to_audit_dict(usuario)
 

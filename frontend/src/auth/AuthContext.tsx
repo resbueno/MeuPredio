@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const payload = decodeJwtPayload<JwtPayload>(access_token);
     if (!payload) {
       setStoredToken(null);
-      throw new Error("Token invalido recebido do servidor.");
+      throw new Error("Token inválido recebido do servidor.");
     }
     const profile = await getUsuario(Number(payload.sub));
     setUser(profile);

@@ -28,7 +28,7 @@ def get_current_user(
 ) -> Usuario:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Nao foi possivel validar as credenciais.",
+        detail="Não foi possível validar as credenciais.",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
@@ -85,7 +85,7 @@ def require_role(*roles: RoleEnum):
         if allowed and current_user.role not in allowed:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Voce nao tem permissao para executar esta acao.",
+                detail="Você não tem permissão para executar esta ação.",
             )
         return current_user
 

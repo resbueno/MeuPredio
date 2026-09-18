@@ -10,7 +10,7 @@ import logoFull from "../assets/logo-full.png";
 
 const cadastroSchema = z.object({
   full_name: z.string().min(2, "Informe o nome completo."),
-  email: z.string().min(1, "Informe o e-mail.").email("Informe um e-mail valido."),
+  email: z.string().min(1, "Informe o e-mail.").email("Informe um e-mail válido."),
   password: z.string().min(8, "A senha deve ter ao menos 8 caracteres."),
   role: z.enum(["morador", "proprietario"]),
   unidade_ids: z.array(z.number()).min(1, "Selecione ao menos uma unidade."),
@@ -49,9 +49,9 @@ export function Cadastro() {
     onSuccess: () => setSucesso(true),
     onError: (err) => {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
-        setServerError("Ja existe um cadastro com este e-mail neste predio.");
+        setServerError("Já existe um cadastro com este e-mail neste prédio.");
       } else {
-        setServerError("Nao foi possivel concluir o cadastro. Verifique os dados e tente novamente.");
+        setServerError("Não foi possível concluir o cadastro. Verifique os dados e tente novamente.");
       }
     },
   });
@@ -89,19 +89,19 @@ export function Cadastro() {
 
           {isError && (
             <div className="text-center">
-              <h1 className="text-lg font-bold text-ink">Convite invalido</h1>
+              <h1 className="text-lg font-bold text-ink">Convite inválido</h1>
               <p className="mt-2 text-sm text-slate-500">
-                Este link de cadastro nao existe mais, expirou ou foi revogado. Peca um novo
-                convite ao sindico ou administrador do seu predio.
+                Este link de cadastro não existe mais, expirou ou foi revogado. Peça um novo
+                convite ao síndico ou administrador do seu prédio.
               </p>
             </div>
           )}
 
           {sucesso && (
             <div className="text-center">
-              <h1 className="text-lg font-bold text-ink">Cadastro concluido!</h1>
+              <h1 className="text-lg font-bold text-ink">Cadastro concluído!</h1>
               <p className="mt-2 text-sm text-slate-500">
-                Sua conta foi criada. Agora e so entrar com seu e-mail e senha.
+                Sua conta foi criada. Agora é só entrar com seu e-mail e senha.
               </p>
               <button
                 type="button"
@@ -165,7 +165,7 @@ export function Cadastro() {
                     {...register("role")}
                   >
                     <option value="morador">Morador</option>
-                    <option value="proprietario">Proprietario</option>
+                    <option value="proprietario">Proprietário</option>
                   </select>
                 </div>
 
@@ -190,7 +190,7 @@ export function Cadastro() {
                     ))}
                     {info.unidades.length === 0 && (
                       <p className="px-2 py-1.5 text-sm text-slate-400">
-                        Nenhuma unidade cadastrada neste predio ainda.
+                        Nenhuma unidade cadastrada neste prédio ainda.
                       </p>
                     )}
                   </div>

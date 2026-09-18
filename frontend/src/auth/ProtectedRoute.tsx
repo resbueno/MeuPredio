@@ -25,7 +25,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-2 px-4 text-center">
         <p className="text-lg font-semibold text-slate-800">Acesso restrito</p>
-        <p className="text-slate-500">Voce nao tem permissao para acessar esta pagina.</p>
+        <p className="text-slate-500">Você não tem permissão para acessar esta página.</p>
       </div>
     );
   }

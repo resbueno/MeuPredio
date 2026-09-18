@@ -50,7 +50,7 @@ def login(
     # incorreta (evita "user enumeration" e, aqui, também "prédio enumeration").
     invalid_credentials = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="E-mail ou senha invalidos.",
+        detail="E-mail ou senha inválidos.",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
@@ -59,7 +59,7 @@ def login(
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Usuario inativo. Contate o administrador do condominio.",
+            detail="Usuário inativo. Contate o administrador do condomínio.",
         )
 
     user.last_login_at = datetime.now(timezone.utc)
