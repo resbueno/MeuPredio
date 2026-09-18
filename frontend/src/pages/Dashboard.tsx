@@ -1,5 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "../components/layout/AppShell";
 import { useAuth } from "../auth/AuthContext";
+import { listAvisosMural } from "../api/avisosMural";
+import { listAvisosDiretos } from "../api/avisosDiretos";
 
 const ROLE_LABELS: Record<string, string> = {
   morador: "Morador",
@@ -8,8 +11,32 @@ const ROLE_LABELS: Record<string, string> = {
   administrador: "Administrador",
 };
 
+const TIPO_AVISO_DIRETO_LABEL: Record<string, string> = {
+  aviso: "Aviso",
+  advertencia: "Advertência",
+  multa: "Multa",
+};
+
+function formatarData(data: string): string {
+  return new Date(data).toLocaleDateString("pt-BR");
+}
+
 export function Dashboard() {
   const { user } = useAuth();
+  const souAdministrador = user?.role === "administrador";
+  const recebeAvisoDireto = user?.role === "morador" || user?.role === "proprietario";
+
+  const { data: avisosCondominio, isLoading } = useQuery({
+    queryKey: ["avisos-mural", "proprio", "condominio"],
+    queryFn: () => listAvisosMural({ tipo: "condominio" }),
+    enabled: !souAdministrador,
+  });
+
+  const { data: avisosDiretos, isLoading: carregandoDiretos } = useQuery({
+    queryKey: ["avisos-diretos", "proprio"],
+    queryFn: () => listAvisosDiretos(),
+    enabled: recebeAvisoDireto,
+  });
 
   return (
     <AppShell>
@@ -27,6 +54,56 @@ export function Dashboard() {
           </p>
         </div>
       </div>
+
+      {recebeAvisoDireto && (
+        <div className="mt-6">
+          <h2 className="mb-2 text-sm font-semibold text-slate-700">Avisos para minha unidade</h2>
+          {carregandoDiretos && <p className="text-sm text-slate-500">Carregando...</p>}
+          <ul className="space-y-2">
+            {avisosDiretos?.map((aviso) => (
+              <li key={aviso.id} className="rounded-xl bg-white p-3 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-medium text-slate-800">{aviso.titulo}</p>
+                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                    {TIPO_AVISO_DIRETO_LABEL[aviso.tipo]}
+                  </span>
+                </div>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{aviso.mensagem}</p>
+                <p className="mt-2 text-xs text-slate-400">
+                  {formatarData(aviso.created_at)}
+                  {!aviso.lida_em && " - não lido"}
+                </p>
+              </li>
+            ))}
+            {avisosDiretos?.length === 0 && (
+              <li className="rounded-xl bg-white p-4 text-center text-sm text-slate-500 shadow-sm">
+                Nenhum aviso direto para sua unidade.
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
+
+      {!souAdministrador && (
+        <div className="mt-6">
+          <h2 className="mb-2 text-sm font-semibold text-slate-700">Avisos do condomínio</h2>
+          {isLoading && <p className="text-sm text-slate-500">Carregando...</p>}
+          <ul className="space-y-2">
+            {avisosCondominio?.map((aviso) => (
+              <li key={aviso.id} className="rounded-xl bg-white p-3 shadow-sm">
+                <p className="font-medium text-slate-800">{aviso.titulo}</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{aviso.descricao}</p>
+                <p className="mt-2 text-xs text-slate-400">{formatarData(aviso.created_at)}</p>
+              </li>
+            ))}
+            {avisosCondominio?.length === 0 && (
+              <li className="rounded-xl bg-white p-4 text-center text-sm text-slate-500 shadow-sm">
+                Nenhum aviso de condomínio no momento.
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
     </AppShell>
   );
 }
