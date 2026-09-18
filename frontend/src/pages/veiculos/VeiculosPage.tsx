@@ -56,6 +56,11 @@ export function VeiculosPage() {
     queryFn: () => listUnidades(),
   });
 
+  function labelUnidade(unidadeId: number): string {
+    const unidade = unidades?.find((u) => u.id === unidadeId);
+    return unidade ? `Bloco ${unidade.bloco} - ${unidade.numero}` : `Unidade #${unidadeId}`;
+  }
+
   const {
     register,
     handleSubmit,
@@ -232,7 +237,7 @@ export function VeiculosPage() {
                 {veiculo.placa} - {veiculo.modelo}
               </p>
               <p className="text-xs text-slate-500">
-                {TIPO_LABELS[veiculo.tipo]} - {veiculo.cor} - Unidade #{veiculo.unidade_id}
+                {TIPO_LABELS[veiculo.tipo]} - {veiculo.cor} - {labelUnidade(veiculo.unidade_id)}
               </p>
             </div>
             {podeGerenciar && (

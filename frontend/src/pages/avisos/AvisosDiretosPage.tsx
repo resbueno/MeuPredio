@@ -108,6 +108,11 @@ export function AvisosDiretosPage() {
     enabled: souGestao && !bloqueadoSemPredio,
   });
 
+  function labelUnidade(unidadeId: number): string {
+    const unidade = unidades?.find((u) => u.id === unidadeId);
+    return unidade ? `Bloco ${unidade.bloco} - ${unidade.numero}` : `Unidade #${unidadeId}`;
+  }
+
   const {
     register,
     handleSubmit,
@@ -311,7 +316,7 @@ export function AvisosDiretosPage() {
                 <div>
                   <p className="font-medium text-slate-800">{aviso.titulo}</p>
                   {souGestao && (
-                    <p className="text-xs text-slate-500">Unidade #{aviso.unidade_id}</p>
+                    <p className="text-xs text-slate-500">{labelUnidade(aviso.unidade_id)}</p>
                   )}
                 </div>
                 <span
