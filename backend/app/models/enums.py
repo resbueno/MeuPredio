@@ -34,3 +34,25 @@ class CriterioRateioEnum(str, enum.Enum):
 
     IGUAL = "igual"
     FRACAO_IDEAL = "fracao_ideal"
+
+
+class CategoriaTicketEnum(str, enum.Enum):
+    MANUTENCAO = "manutencao"
+    DUVIDA = "duvida"
+    SOLICITACAO = "solicitacao"
+    OUTRO = "outro"
+
+
+class PrioridadeTicketEnum(str, enum.Enum):
+    """Define o prazo de SLA do chamado (ver app/core/tickets.py)."""
+
+    BAIXA = "baixa"
+    MEDIA = "media"
+    ALTA = "alta"
+
+
+class StatusTicketEnum(str, enum.Enum):
+    ABERTO = "aberto"
+    EM_ANDAMENTO = "em_andamento"
+    RESOLVIDO = "resolvido"
+    CANCELADO = "cancelado"

@@ -11,6 +11,7 @@ import { UnidadesPage } from "./pages/unidades/UnidadesPage";
 import { VeiculosPage } from "./pages/veiculos/VeiculosPage";
 import { DespesasPage } from "./pages/despesas/DespesasPage";
 import { TransparenciaPage } from "./pages/transparencia/TransparenciaPage";
+import { TicketsPage } from "./pages/tickets/TicketsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -79,6 +80,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <TransparenciaPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tickets"
+              element={
+                <ProtectedRoute>
+                  <TicketsPage />
                 </ProtectedRoute>
               }
             />

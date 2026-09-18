@@ -1,5 +1,8 @@
 export type RoleEnum = "morador" | "proprietario" | "sindico" | "zelador" | "administrador";
 export type TipoVeiculoEnum = "carro" | "moto" | "outro";
+export type CategoriaTicketEnum = "manutencao" | "duvida" | "solicitacao" | "outro";
+export type PrioridadeTicketEnum = "baixa" | "media" | "alta";
+export type StatusTicketEnum = "aberto" | "em_andamento" | "resolvido" | "cancelado";
 
 export interface Usuario {
   id: number;
@@ -196,6 +199,49 @@ export interface Balancete {
   total_cancelado: string;
   total_geral: string;
   por_categoria: TotalPorCategoria[];
+}
+
+export interface TicketComentario {
+  id: number;
+  ticket_id: number;
+  created_by: number | null;
+  mensagem: string;
+  created_at: string;
+}
+
+export interface TicketAtendimento {
+  id: number;
+  predio_id: number;
+  unidade_id: number | null;
+  responsavel_id: number | null;
+  created_by: number | null;
+  titulo: string;
+  descricao: string;
+  categoria: CategoriaTicketEnum;
+  prioridade: PrioridadeTicketEnum;
+  status: StatusTicketEnum;
+  prazo_sla: string;
+  resolvido_em: string | null;
+  esta_atrasado: boolean;
+  comentarios: TicketComentario[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TicketCreateInput {
+  titulo: string;
+  descricao: string;
+  categoria: CategoriaTicketEnum;
+  prioridade: PrioridadeTicketEnum;
+  unidade_id?: number | null;
+  predio_id?: number | null;
+}
+
+export interface TicketAtualizarInput {
+  titulo?: string;
+  descricao?: string;
+  categoria?: CategoriaTicketEnum;
+  prioridade?: PrioridadeTicketEnum;
 }
 
 export interface ExtracaoBoleto {

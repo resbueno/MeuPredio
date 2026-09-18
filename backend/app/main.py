@@ -10,6 +10,7 @@ from app.routers import (
     fornecedores,
     health,
     predios,
+    tickets,
     transparencia,
     unidades,
     usuarios,
@@ -45,3 +46,4 @@ app.include_router(veiculos.router)
 app.include_router(fornecedores.router)
 app.include_router(despesas.router)
 app.include_router(transparencia.router)
+app.include_router(tickets.router)
