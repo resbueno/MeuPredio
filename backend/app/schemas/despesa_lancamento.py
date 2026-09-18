@@ -61,6 +61,7 @@ class DespesaLancamentoRead(BaseModel):
     status: StatusDespesaEnum
     esta_atrasada: bool
     documento_url: str | None
+    comprovante_pagamento_url: str | None
     observacoes: str | None
     rateado_em: datetime | None
     itens_rateio: list[RateioDespesaItemRead] = []

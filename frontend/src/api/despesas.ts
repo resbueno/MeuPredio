@@ -36,6 +36,13 @@ export async function desfazerPagamento(id: number): Promise<DespesaLancamento> 
   return data;
 }
 
+export async function anexarComprovante(id: number, arquivo: File): Promise<DespesaLancamento> {
+  const formData = new FormData();
+  formData.append("arquivo", arquivo);
+  const { data } = await apiClient.post<DespesaLancamento>(`/despesas/${id}/comprovante`, formData);
+  return data;
+}
+
 export async function extrairBoleto(
   arquivo: File,
   predioId?: number | null

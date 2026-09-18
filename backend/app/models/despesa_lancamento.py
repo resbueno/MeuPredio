@@ -53,6 +53,11 @@ class DespesaLancamento(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
         default=StatusDespesaEnum.PENDENTE,
     )
     documento_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Comprovante da baixa em si (recibo, print do PIX/TED) - distinto de
+    # `documento_url` (o boleto original, anexado na criacao). Anexavel a
+    # qualquer momento depois que o lancamento vira "pago", ver
+    # POST /despesas/{id}/comprovante.
+    comprovante_pagamento_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
     rateado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

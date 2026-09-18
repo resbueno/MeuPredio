@@ -151,6 +151,7 @@ export interface DespesaLancamento {
   status: StatusDespesaEnum;
   esta_atrasada: boolean;
   documento_url: string | null;
+  comprovante_pagamento_url: string | null;
   observacoes: string | null;
   rateado_em: string | null;
   itens_rateio: RateioDespesaItem[];
@@ -179,6 +180,7 @@ export interface DespesaTransparencia {
   status: StatusDespesaEnum;
   esta_atrasada: boolean;
   documento_url: string | null;
+  comprovante_pagamento_url: string | null;
 }
 
 export interface TotalPorCategoria {

@@ -196,6 +196,76 @@ def test_nao_pode_editar_despesa_ja_paga(client, db_session):
     assert resposta.status_code == 409
 
 
+def test_anexar_comprovante_em_despesa_paga(client, db_session):
+    admin, predio = _admin_com_predio(db_session, email="admin.d12@test.local")
+    criada = client.post(
+        "/despesas",
+        json={
+            "descricao": "Gas",
+            "categoria": "gas",
+            "valor": "80",
+            "data_vencimento": "2026-10-15",
+            "predio_id": predio.id,
+        },
+        headers=auth_header(admin),
+    ).json()
+    client.post(f"/despesas/{criada['id']}/pagar", json={}, headers=auth_header(admin))
+
+    resposta = client.post(
+        f"/despesas/{criada['id']}/comprovante",
+        files={"arquivo": ("comprovante.jpg", b"fake-bytes", "image/jpeg")},
+        headers=auth_header(admin),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["comprovante_pagamento_url"] is not None
+
+
+def test_nao_pode_anexar_comprovante_em_despesa_pendente(client, db_session):
+    admin, predio = _admin_com_predio(db_session, email="admin.d13@test.local")
+    criada = client.post(
+        "/despesas",
+        json={
+            "descricao": "Gas",
+            "categoria": "gas",
+            "valor": "80",
+            "data_vencimento": "2026-10-15",
+            "predio_id": predio.id,
+        },
+        headers=auth_header(admin),
+    ).json()
+
+    resposta = client.post(
+        f"/despesas/{criada['id']}/comprovante",
+        files={"arquivo": ("comprovante.jpg", b"fake-bytes", "image/jpeg")},
+        headers=auth_header(admin),
+    )
+    assert resposta.status_code == 409
+
+
+def test_desfazer_pagamento_limpa_comprovante(client, db_session):
+    admin, predio = _admin_com_predio(db_session, email="admin.d14@test.local")
+    criada = client.post(
+        "/despesas",
+        json={
+            "descricao": "Gas",
+            "categoria": "gas",
+            "valor": "80",
+            "data_vencimento": "2026-10-15",
+            "predio_id": predio.id,
+        },
+        headers=auth_header(admin),
+    ).json()
+    client.post(f"/despesas/{criada['id']}/pagar", json={}, headers=auth_header(admin))
+    client.post(
+        f"/despesas/{criada['id']}/comprovante",
+        files={"arquivo": ("comprovante.jpg", b"fake-bytes", "image/jpeg")},
+        headers=auth_header(admin),
+    )
+
+    desfeito = client.post(f"/despesas/{criada['id']}/desfazer-pagamento", headers=auth_header(admin))
+    assert desfeito.json()["comprovante_pagamento_url"] is None
+
+
 def test_desfazer_pagamento_volta_para_pendente_e_libera_edicao(client, db_session):
     admin, predio = _admin_com_predio(db_session, email="admin.d10@test.local")
     criada = client.post(

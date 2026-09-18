@@ -1,6 +1,8 @@
 import { apiClient } from "./client";
 import type { Balancete, DespesaTransparencia } from "./types";
 
+export { baixarDocumento } from "./documentos";
+
 interface FiltroPeriodo {
   predioId?: number | null;
   ano?: number;
@@ -31,7 +33,3 @@ export async function getBalancete(filtro: FiltroPeriodo = {}): Promise<Balancet
   return data;
 }
 
-export async function baixarDocumento(documentoUrl: string): Promise<string> {
-  const { data } = await apiClient.get(documentoUrl, { responseType: "blob" });
-  return URL.createObjectURL(data as Blob);
-}

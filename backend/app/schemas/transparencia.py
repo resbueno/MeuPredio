@@ -25,6 +25,7 @@ class DespesaTransparenciaRead(BaseModel):
     status: StatusDespesaEnum
     esta_atrasada: bool
     documento_url: str | None
+    comprovante_pagamento_url: str | None
 
     @field_validator("valor")
     @classmethod

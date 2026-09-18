@@ -7,6 +7,7 @@ import { z } from "zod";
 import { AppShell } from "../../components/layout/AppShell";
 import { useAuth } from "../../auth/AuthContext";
 import {
+  anexarComprovante,
   cancelarDespesa,
   createDespesa,
   desfazerPagamento,
@@ -15,6 +16,7 @@ import {
   registrarPagamento,
   updateDespesa,
 } from "../../api/despesas";
+import { baixarDocumento } from "../../api/documentos";
 import {
   configurarIntegracaoOcr,
   obterIntegracaoOcr,
@@ -264,6 +266,22 @@ export function DespesasPage() {
     mutationFn: desfazerPagamento,
     onSuccess: invalidateDespesas,
   });
+  const anexarComprovanteMutation = useMutation({
+    mutationFn: ({ id, arquivo }: { id: number; arquivo: File }) => anexarComprovante(id, arquivo),
+    onSuccess: invalidateDespesas,
+  });
+
+  function onSelecionarComprovante(despesaId: number, event: ChangeEvent<HTMLInputElement>): void {
+    const arquivo = event.target.files?.[0];
+    event.target.value = "";
+    if (!arquivo) return;
+    anexarComprovanteMutation.mutate({ id: despesaId, arquivo });
+  }
+
+  async function verComprovante(url: string): Promise<void> {
+    const blobUrl = await baixarDocumento(url);
+    window.open(blobUrl, "_blank", "noopener,noreferrer");
+  }
 
   function onSelecionarArquivo(event: ChangeEvent<HTMLInputElement>): void {
     const arquivo = event.target.files?.[0];
@@ -507,6 +525,31 @@ export function DespesasPage() {
                 </button>
               )}
             </div>
+            {despesa.status === "pago" && (
+              <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
+                {despesa.comprovante_pagamento_url ? (
+                  <button
+                    type="button"
+                    onClick={() => verComprovante(despesa.comprovante_pagamento_url!)}
+                    className="text-xs font-medium text-brand-600"
+                  >
+                    Ver comprovante
+                  </button>
+                ) : (
+                  <span className="text-xs text-slate-400">Sem comprovante anexado</span>
+                )}
+                <label className="text-xs font-medium text-brand-600 hover:cursor-pointer">
+                  {despesa.comprovante_pagamento_url ? "Trocar comprovante" : "Anexar comprovante"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    className="hidden"
+                    disabled={anexarComprovanteMutation.isPending}
+                    onChange={(event) => onSelecionarComprovante(despesa.id, event)}
+                  />
+                </label>
+              </div>
+            )}
           </li>
         ))}
         {despesas?.length === 0 && (

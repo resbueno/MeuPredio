@@ -430,6 +430,60 @@ def registrar_pagamento(
     return despesa
 
 
+@router.post("/{despesa_id}/comprovante", response_model=DespesaLancamentoRead)
+async def anexar_comprovante_pagamento(
+    despesa_id: int,
+    request: Request,
+    arquivo: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
+) -> DespesaLancamento:
+    """Anexa o comprovante da baixa (recibo, print do PIX/TED) a um
+    lancamento ja pago - so faz sentido depois de `POST /pagar` (mesma regra
+    de "so mexe em pago" do `_exigir_pago` usado em `desfazer_pagamento`,
+    ao contrario).
+    """
+    despesa = _despesa_ou_404(db, despesa_id, current_user)
+    _exigir_pago(despesa, "anexar comprovante de pagamento a")
+
+    if arquivo.content_type not in _MIME_TYPES_OCR_PERMITIDOS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Tipo de arquivo nao suportado. Envie uma imagem (JPEG/PNG/WEBP) ou PDF.",
+        )
+
+    conteudo = await arquivo.read()
+    if not conteudo:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Arquivo vazio.")
+    if len(conteudo) > _TAMANHO_MAXIMO_OCR_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Arquivo maior que o limite permitido (10MB).",
+        )
+
+    dados_antes = model_to_audit_dict(despesa)
+    despesa.comprovante_pagamento_url = salvar_documento(
+        despesa.predio_id, arquivo.filename or "comprovante", conteudo
+    )
+    db.add(despesa)
+    db.flush()
+
+    registrar_log(
+        db,
+        usuario_id=current_user.id,
+        acao="UPDATE",
+        entidade="despesas_lancamentos",
+        entidade_id=despesa.id,
+        dados_antes=dados_antes,
+        dados_depois=model_to_audit_dict(despesa),
+        ip_origem=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.commit()
+    db.refresh(despesa)
+    return despesa
+
+
 @router.post("/{despesa_id}/desfazer-pagamento", response_model=DespesaLancamentoRead)
 def desfazer_pagamento(
     despesa_id: int,
@@ -449,6 +503,7 @@ def desfazer_pagamento(
     dados_antes = model_to_audit_dict(despesa)
     despesa.status = StatusDespesaEnum.PENDENTE
     despesa.data_pagamento = None
+    despesa.comprovante_pagamento_url = None
     db.add(despesa)
     db.flush()
 
