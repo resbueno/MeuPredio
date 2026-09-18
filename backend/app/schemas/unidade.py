@@ -21,6 +21,19 @@ class UnidadeCreate(UnidadeBase):
     fracao_ideal: Decimal | None = Field(default=None, gt=0, max_digits=9, decimal_places=6)
 
 
+class UnidadeLoteItem(UnidadeBase):
+    fracao_ideal: Decimal | None = Field(default=None, gt=0, max_digits=9, decimal_places=6)
+
+
+class UnidadeLoteCreate(BaseModel):
+    """Cadastro em lote (ex.: um bloco inteiro de uma vez) - o cliente monta
+    a lista final de bloco/número (a numeração por andar é decidida na UI,
+    o backend só valida e insere tudo de uma vez, tudo ou nada)."""
+
+    unidades: list[UnidadeLoteItem] = Field(min_length=1, max_length=500)
+    predio_id: int | None = None
+
+
 class UnidadeUpdate(BaseModel):
     bloco: str | None = Field(default=None, min_length=1, max_length=20)
     numero: str | None = Field(default=None, min_length=1, max_length=20)

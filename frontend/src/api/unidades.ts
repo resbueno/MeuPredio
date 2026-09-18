@@ -13,6 +13,14 @@ export async function createUnidade(input: UnidadeInput): Promise<Unidade> {
   return data;
 }
 
+export async function createUnidadesLote(input: {
+  unidades: { bloco: string; numero: string }[];
+  predio_id?: number | null;
+}): Promise<Unidade[]> {
+  const { data } = await apiClient.post<Unidade[]>("/unidades/lote", input);
+  return data;
+}
+
 export async function updateUnidade(id: number, input: Partial<UnidadeInput>): Promise<Unidade> {
   const { data } = await apiClient.patch<Unidade>(`/unidades/${id}`, input);
   return data;

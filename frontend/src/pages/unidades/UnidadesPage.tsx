@@ -1,11 +1,17 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { AppShell } from "../../components/layout/AppShell";
 import { useAuth } from "../../auth/AuthContext";
-import { createUnidade, deleteUnidade, listUnidades, updateUnidade } from "../../api/unidades";
+import {
+  createUnidade,
+  createUnidadesLote,
+  deleteUnidade,
+  listUnidades,
+  updateUnidade,
+} from "../../api/unidades";
 import type { Unidade, UnidadeInput } from "../../api/types";
 
 const unidadeSchema = z.object({
@@ -23,6 +29,24 @@ function toUnidadeInput(values: UnidadeFormValues): UnidadeInput {
     numero: values.numero,
     predio_id: predioId ? Number(predioId) : null,
   };
+}
+
+/** Gera os números por andar: térreo (se incluído) é o andar "0", depois
+ * 1, 2, 3... - cada número é "<andar><posição>" (posição preenchida com
+ * zeros à esquerda até caber a quantidade de unidades por andar). Ex.: 5
+ * andares, 3 por andar, com térreo -> 01,02,03, 11,12,13, 21,22,23... */
+function gerarNumerosLote(andares: number, porAndar: number, incluirTerreo: boolean): string[] {
+  if (andares < 1 || porAndar < 1) return [];
+  const andarInicial = incluirTerreo ? 0 : 1;
+  const andarFinal = incluirTerreo ? andares - 1 : andares;
+  const digitosPosicao = String(porAndar).length;
+  const numeros: string[] = [];
+  for (let andar = andarInicial; andar <= andarFinal; andar++) {
+    for (let posicao = 1; posicao <= porAndar; posicao++) {
+      numeros.push(`${andar}${String(posicao).padStart(digitosPosicao, "0")}`);
+    }
+  }
+  return numeros;
 }
 
 export function UnidadesPage() {
@@ -88,6 +112,40 @@ export function UnidadesPage() {
   }
 
   const erroMutacao = createMutation.error ?? updateMutation.error;
+
+  const [mostrarLote, setMostrarLote] = useState(false);
+  const [loteBloco, setLoteBloco] = useState("");
+  const [loteAndares, setLoteAndares] = useState("1");
+  const [lotePorAndar, setLotePorAndar] = useState("1");
+  const [loteIncluirTerreo, setLoteIncluirTerreo] = useState(true);
+  const [lotePredioId, setLotePredioId] = useState("");
+
+  const loteNumeros = useMemo(
+    () => gerarNumerosLote(Number(loteAndares) || 0, Number(lotePorAndar) || 0, loteIncluirTerreo),
+    [loteAndares, lotePorAndar, loteIncluirTerreo]
+  );
+
+  const loteMutation = useMutation({
+    mutationFn: createUnidadesLote,
+    onSuccess: () => {
+      invalidate();
+      setLoteBloco("");
+      setLoteAndares("1");
+      setLotePorAndar("1");
+      setLoteIncluirTerreo(true);
+      setLotePredioId("");
+      setMostrarLote(false);
+    },
+  });
+
+  function onSubmitLote(): void {
+    if (!loteBloco.trim() || loteNumeros.length === 0) return;
+    if (souAdministrador && !lotePredioId.trim()) return;
+    loteMutation.mutate({
+      unidades: loteNumeros.map((numero) => ({ bloco: loteBloco.trim(), numero })),
+      predio_id: souAdministrador ? Number(lotePredioId.trim()) : undefined,
+    });
+  }
 
   return (
     <AppShell>
@@ -163,6 +221,115 @@ export function UnidadesPage() {
             )}
           </div>
         </form>
+      )}
+
+      {podeGerenciar && (
+        <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setMostrarLote((v) => !v)}
+            className="text-sm font-semibold text-brand-600"
+          >
+            {mostrarLote ? "Fechar cadastro em lote" : "Cadastrar em lote (ex.: um bloco inteiro)"}
+          </button>
+
+          {mostrarLote && (
+            <div className="mt-3 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Bloco</label>
+                  <input
+                    value={loteBloco}
+                    onChange={(event) => setLoteBloco(event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    placeholder="Ex.: 1"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">
+                    Unidades por andar
+                  </label>
+                  <input
+                    inputMode="numeric"
+                    value={lotePorAndar}
+                    onChange={(event) => setLotePorAndar(event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">
+                    Quantidade de andares
+                  </label>
+                  <input
+                    inputMode="numeric"
+                    value={loteAndares}
+                    onChange={(event) => setLoteAndares(event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="flex items-end pb-2">
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={loteIncluirTerreo}
+                      onChange={(event) => setLoteIncluirTerreo(event.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
+                    />
+                    Considerar o térreo
+                  </label>
+                </div>
+              </div>
+
+              {souAdministrador && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">
+                    ID do prédio
+                  </label>
+                  <input
+                    inputMode="numeric"
+                    value={lotePredioId}
+                    onChange={(event) => setLotePredioId(event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  />
+                </div>
+              )}
+
+              <div>
+                <p className="mb-1 text-xs font-medium text-slate-600">
+                  Prévia ({loteNumeros.length} unidade{loteNumeros.length === 1 ? "" : "s"})
+                </p>
+                <p className="rounded-lg bg-slate-50 p-2 text-sm text-slate-600">
+                  {loteNumeros.length > 0
+                    ? loteNumeros.join(", ")
+                    : "Ajuste os campos acima para gerar a prévia."}
+                </p>
+              </div>
+
+              {loteMutation.isError && (
+                <p className="text-sm text-red-600">
+                  Não foi possível criar o lote. Verifique se alguma unidade já existe.
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={onSubmitLote}
+                disabled={
+                  loteMutation.isPending ||
+                  !loteBloco.trim() ||
+                  loteNumeros.length === 0 ||
+                  (souAdministrador && !lotePredioId.trim())
+                }
+                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+              >
+                Criar {loteNumeros.length} unidade{loteNumeros.length === 1 ? "" : "s"}
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       {isLoading && <p className="text-sm text-slate-500">Carregando...</p>}

@@ -11,7 +11,7 @@ from app.core.dependencies import get_current_user, get_db, require_role, resolv
 from app.models.enums import RoleEnum
 from app.models.unidade import Unidade
 from app.models.usuario import Usuario
-from app.schemas.unidade import UnidadeCreate, UnidadeRead, UnidadeUpdate
+from app.schemas.unidade import UnidadeCreate, UnidadeLoteCreate, UnidadeRead, UnidadeUpdate
 
 router = APIRouter(prefix="/unidades", tags=["unidades"])
 
@@ -79,6 +79,62 @@ def criar_unidade(
     db.commit()
     db.refresh(unidade)
     return unidade
+
+
+@router.post("/lote", response_model=list[UnidadeRead], status_code=status.HTTP_201_CREATED)
+def criar_unidades_em_lote(
+    payload: UnidadeLoteCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(*_GESTORES)),
+) -> list[Unidade]:
+    """Cria várias unidades de uma vez (ex.: um bloco inteiro) - tudo ou
+    nada: se alguma combinação bloco/número já existir (ou se repetir
+    dentro do próprio lote), nada é criado."""
+    predio_id = resolver_predio_id(current_user, payload.predio_id)
+
+    combinacoes = {(item.bloco, item.numero) for item in payload.unidades}
+    if len(combinacoes) != len(payload.unidades):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="O lote tem bloco/número repetido dentro dele mesmo.",
+        )
+
+    unidades = [
+        Unidade(
+            predio_id=predio_id,
+            bloco=item.bloco,
+            numero=item.numero,
+            fracao_ideal=item.fracao_ideal,
+            created_by=current_user.id,
+        )
+        for item in payload.unidades
+    ]
+    db.add_all(unidades)
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Uma ou mais unidades do lote já existem neste prédio (bloco/número duplicado).",
+        ) from None
+
+    for unidade in unidades:
+        registrar_log(
+            db,
+            usuario_id=current_user.id,
+            acao="CREATE",
+            entidade="unidades",
+            entidade_id=unidade.id,
+            dados_depois=model_to_audit_dict(unidade),
+            ip_origem=_client_ip(request),
+            user_agent=request.headers.get("user-agent"),
+        )
+    db.commit()
+    for unidade in unidades:
+        db.refresh(unidade)
+    return unidades
 
 
 @router.get("", response_model=list[UnidadeRead])

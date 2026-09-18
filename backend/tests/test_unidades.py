@@ -3,7 +3,7 @@ from __future__ import annotations
 from app.models.enums import RoleEnum
 from app.models.log_auditoria import LogAuditoria
 from app.models.unidade import Unidade
-from tests.utils import auth_header, make_predio, make_user
+from tests.utils import auth_header, make_predio, make_unidade, make_user
 
 
 def test_criar_unidade_sem_autenticacao_retorna_401(client):
@@ -153,3 +153,69 @@ def test_soft_delete_unidade(client, db_session):
     listagem = client.get("/unidades", params={"predio_id": predio.id}, headers=auth_header(admin))
     ids = [u["id"] for u in listagem.json()]
     assert criada["id"] not in ids
+
+
+def test_sindico_cria_lote_de_unidades(client, db_session):
+    sindico = make_user(db_session, email="sindico.u2@test.local", role=RoleEnum.SINDICO)
+    resposta = client.post(
+        "/unidades/lote",
+        json={
+            "unidades": [
+                {"bloco": "1", "numero": "01"},
+                {"bloco": "1", "numero": "02"},
+                {"bloco": "1", "numero": "03"},
+                {"bloco": "1", "numero": "11"},
+                {"bloco": "1", "numero": "12"},
+                {"bloco": "1", "numero": "13"},
+            ]
+        },
+        headers=auth_header(sindico),
+    )
+    assert resposta.status_code == 201
+    corpo = resposta.json()
+    assert len(corpo) == 6
+    assert all(u["predio_id"] == sindico.predio_id for u in corpo)
+    assert {u["numero"] for u in corpo} == {"01", "02", "03", "11", "12", "13"}
+
+
+def test_lote_com_numero_repetido_dentro_do_proprio_lote_retorna_422(client, db_session):
+    sindico = make_user(db_session, email="sindico.u3@test.local", role=RoleEnum.SINDICO)
+    resposta = client.post(
+        "/unidades/lote",
+        json={"unidades": [{"bloco": "1", "numero": "01"}, {"bloco": "1", "numero": "01"}]},
+        headers=auth_header(sindico),
+    )
+    assert resposta.status_code == 422
+
+
+def test_lote_colidindo_com_unidade_existente_retorna_409(client, db_session):
+    # So confere o status code, mesmo padrao das outras verificacoes de
+    # conflito (ex.: test_criar_unidade_duplicada_bloco_numero_retorna_409):
+    # apos um IntegrityError, o rollback() no router encerra a savepoint
+    # desta sessao de teste (limitacao do harness, inofensiva em producao -
+    # la cada requisicao tem sua propria transacao) - consultar o banco
+    # de novo na mesma sessao depois disso nao e confiavel aqui.
+    sindico = make_user(db_session, email="sindico.u4@test.local", role=RoleEnum.SINDICO)
+    make_unidade(db_session, sindico.predio, bloco="1", numero="02")
+
+    resposta = client.post(
+        "/unidades/lote",
+        json={
+            "unidades": [
+                {"bloco": "1", "numero": "01"},
+                {"bloco": "1", "numero": "02"},
+            ]
+        },
+        headers=auth_header(sindico),
+    )
+    assert resposta.status_code == 409
+
+
+def test_administrador_lote_precisa_informar_predio_id(client, db_session):
+    admin = make_user(db_session, email="admin.u5@test.local", role=RoleEnum.ADMINISTRADOR)
+    resposta = client.post(
+        "/unidades/lote",
+        json={"unidades": [{"bloco": "1", "numero": "01"}]},
+        headers=auth_header(admin),
+    )
+    assert resposta.status_code == 422
