@@ -13,6 +13,7 @@ import {
   desfazerPagamento,
   extrairBoleto,
   listDespesas,
+  ratearDespesa,
   registrarPagamento,
   updateDespesa,
 } from "../../api/despesas";
@@ -23,6 +24,7 @@ import {
   removerIntegracaoOcr,
 } from "../../api/predios";
 import type {
+  CriterioRateioEnum,
   DespesaCreateInput,
   DespesaLancamento,
   ExtracaoBoleto,
@@ -270,6 +272,11 @@ export function DespesasPage() {
     mutationFn: ({ id, arquivo }: { id: number; arquivo: File }) => anexarComprovante(id, arquivo),
     onSuccess: invalidateDespesas,
   });
+  const ratearMutation = useMutation({
+    mutationFn: ({ id, criterio }: { id: number; criterio: CriterioRateioEnum }) =>
+      ratearDespesa(id, criterio),
+    onSuccess: invalidateDespesas,
+  });
 
   function onSelecionarComprovante(despesaId: number, event: ChangeEvent<HTMLInputElement>): void {
     const arquivo = event.target.files?.[0];
@@ -469,6 +476,14 @@ export function DespesasPage() {
 
       {isLoading && <p className="text-sm text-slate-500">Carregando...</p>}
 
+      {ratearMutation.isError && (
+        <p className="mb-2 text-sm text-red-600">
+          {axios.isAxiosError(ratearMutation.error) && ratearMutation.error.response?.status === 422
+            ? "Não foi possível ratear por fração ideal - alguma unidade não tem fração ideal cadastrada."
+            : "Não foi possível ratear a conta. Tente novamente."}
+        </p>
+      )}
+
       <ul className="space-y-2">
         {despesas?.map((despesa: DespesaLancamento) => (
           <li key={despesa.id} className="rounded-xl bg-white p-3 shadow-sm">
@@ -525,6 +540,38 @@ export function DespesasPage() {
                 </button>
               )}
             </div>
+            {despesa.status === "pendente" && despesa.unidade_id == null && (
+              <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
+                <span className="text-xs text-slate-400">
+                  {despesa.rateado_em
+                    ? `Rateada entre ${despesa.itens_rateio.length} unidade${despesa.itens_rateio.length === 1 ? "" : "s"}`
+                    : "Ainda não dividida entre as unidades"}
+                </span>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => ratearMutation.mutate({ id: despesa.id, criterio: "igual" })}
+                    disabled={ratearMutation.isPending}
+                    className="text-xs font-medium text-brand-600 disabled:opacity-60"
+                  >
+                    {despesa.rateado_em ? "Ratear de novo (igual)" : "Ratear (igual)"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => ratearMutation.mutate({ id: despesa.id, criterio: "fracao_ideal" })}
+                    disabled={ratearMutation.isPending}
+                    className="text-xs font-medium text-brand-600 disabled:opacity-60"
+                  >
+                    {despesa.rateado_em ? "Ratear de novo (fração ideal)" : "Ratear (fração ideal)"}
+                  </button>
+                </div>
+              </div>
+            )}
+            {despesa.unidade_id != null && (
+              <p className="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-400">
+                Cobrança exclusiva desta unidade (multa) - não é dividida com as demais.
+              </p>
+            )}
             {despesa.status === "pago" && (
               <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
                 {despesa.comprovante_pagamento_url ? (

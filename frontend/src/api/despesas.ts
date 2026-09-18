@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { DespesaCreateInput, DespesaLancamento, ExtracaoBoleto } from "./types";
+import type { CriterioRateioEnum, DespesaCreateInput, DespesaLancamento, ExtracaoBoleto } from "./types";
 
 export async function listDespesas(predioId?: number | null): Promise<DespesaLancamento[]> {
   const { data } = await apiClient.get<DespesaLancamento[]>("/despesas", {
@@ -28,6 +28,14 @@ export async function registrarPagamento(id: number): Promise<DespesaLancamento>
 
 export async function cancelarDespesa(id: number): Promise<DespesaLancamento> {
   const { data } = await apiClient.post<DespesaLancamento>(`/despesas/${id}/cancelar`);
+  return data;
+}
+
+export async function ratearDespesa(
+  id: number,
+  criterio: CriterioRateioEnum
+): Promise<DespesaLancamento> {
+  const { data } = await apiClient.post<DespesaLancamento>(`/despesas/${id}/ratear`, { criterio });
   return data;
 }
 

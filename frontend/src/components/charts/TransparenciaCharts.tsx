@@ -31,13 +31,15 @@ export function GraficoCategoria({ itens }: { itens: ItemCategoria[] }) {
   const larguraGrafico = 240;
 
   return (
-    <div className="overflow-x-auto">
+    <div className="max-w-md overflow-x-auto">
       <svg
         width="100%"
+        height={alturaTotal}
         viewBox={`0 0 ${larguraLabel + larguraGrafico + 60} ${alturaTotal}`}
         role="img"
         aria-label="Gastos por categoria no período"
         className="min-w-[320px]"
+        preserveAspectRatio="xMinYMin meet"
       >
         {ordenados.map((item, indice) => {
           const y = indice * (alturaBarra + espacamento);
@@ -127,13 +129,15 @@ export function GraficoTendencia({ pontos }: { pontos: PontoSerie[] }) {
   const caminho = coordenadas.map((c, i) => `${i === 0 ? "M" : "L"} ${c.x} ${c.y}`).join(" ");
 
   return (
-    <div className="overflow-x-auto">
+    <div className="max-w-md overflow-x-auto">
       <svg
         width="100%"
+        height={altura}
         viewBox={`0 0 ${largura} ${altura}`}
         role="img"
         aria-label="Tendência de gastos nos últimos meses"
         className="min-w-[280px]"
+        preserveAspectRatio="xMinYMin meet"
       >
         <line
           x1={margemEsquerda}
