@@ -298,3 +298,33 @@ def test_log_auditoria_e_imutavel_via_trigger_de_banco(db_session):
     log.acao = "ALTERADO"
     with pytest.raises(DBAPIError):
         db_session.flush()
+
+
+def test_usuario_aceita_o_proprio_consentimento_lgpd(client, db_session):
+    morador = make_user(db_session, email="morador.lgpd1@test.local", role=RoleEnum.MORADOR)
+    assert morador.consent_lgpd_accepted_at is None
+
+    resposta = client.post(
+        f"/usuarios/{morador.id}/consentimento-lgpd/aceitar", headers=auth_header(morador)
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["consent_lgpd_accepted_at"] is not None
+
+    revogada = client.post(
+        f"/usuarios/{morador.id}/consentimento-lgpd/revogar", headers=auth_header(morador)
+    )
+    assert revogada.status_code == 200
+    assert revogada.json()["consent_lgpd_accepted_at"] is None
+
+
+def test_sindico_nao_pode_aceitar_consentimento_de_outro(client, db_session):
+    predio = make_predio(db_session)
+    sindico = make_user(db_session, email="sindico.lgpd1@test.local", role=RoleEnum.SINDICO, predio=predio)
+    morador = make_user(
+        db_session, email="morador.lgpd2@test.local", role=RoleEnum.MORADOR, predio=predio
+    )
+
+    resposta = client.post(
+        f"/usuarios/{morador.id}/consentimento-lgpd/aceitar", headers=auth_header(sindico)
+    )
+    assert resposta.status_code == 403

@@ -16,6 +16,7 @@ interface AuthContextValue {
   isLoading: boolean;
   signIn: (email: string, password: string, predioId: number | null) => Promise<void>;
   signOut: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -59,8 +60,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
+  async function refreshUser(): Promise<void> {
+    if (!user) return;
+    const profile = await getUsuario(user.id);
+    setUser(profile);
+  }
+
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isLoading, signIn, signOut }),
+    () => ({ user, isLoading, signIn, signOut, refreshUser }),
     [user, isLoading]
   );
 

@@ -29,3 +29,13 @@ export async function anonimizarUsuario(id: number): Promise<Usuario> {
   const { data } = await apiClient.post<Usuario>(`/usuarios/${id}/anonimizar`);
   return data;
 }
+
+export async function aceitarConsentimentoLgpd(id: number): Promise<Usuario> {
+  const { data } = await apiClient.post<Usuario>(`/usuarios/${id}/consentimento-lgpd/aceitar`);
+  return data;
+}
+
+export async function revogarConsentimentoLgpd(id: number): Promise<Usuario> {
+  const { data } = await apiClient.post<Usuario>(`/usuarios/${id}/consentimento-lgpd/revogar`);
+  return data;
+}

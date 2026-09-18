@@ -60,3 +60,54 @@ class BalanceteResponse(BaseModel):
     @classmethod
     def _duas_casas(cls, v: Decimal) -> Decimal:
         return v.quantize(Decimal("0.01"))
+
+
+class BalanceteMensal(BaseModel):
+    """Um ponto da serie mensal (ver GET /transparencia/balancete/serie) -
+    mesmos totais do BalanceteResponse, sem o detalhamento por categoria
+    (o grafico de tendencia so precisa do total)."""
+
+    ano: int
+    mes: int
+    total_pago: Decimal
+    total_pendente: Decimal
+    total_geral: Decimal
+
+    @field_validator("total_pago", "total_pendente", "total_geral")
+    @classmethod
+    def _duas_casas(cls, v: Decimal) -> Decimal:
+        return v.quantize(Decimal("0.01"))
+
+
+class PreviaUnidadeItem(BaseModel):
+    despesa_id: int
+    descricao: str
+    categoria: str
+    tipo: str  # "rateio" (parte de uma despesa geral) ou "multa" (exclusiva da unidade)
+    valor: Decimal
+    status: StatusDespesaEnum
+    data_vencimento: date
+
+    @field_validator("valor")
+    @classmethod
+    def _duas_casas(cls, v: Decimal) -> Decimal:
+        return v.quantize(Decimal("0.01"))
+
+
+class PreviaUnidadeResponse(BaseModel):
+    """Previa da conta de condominio de UMA unidade num periodo: a fatia
+    dela nas despesas gerais ratejadas + qualquer despesa exclusiva sua
+    (multa) - ver DespesaLancamento.unidade_id."""
+
+    unidade_id: int
+    ano: int
+    mes: int | None
+    total_rateio: Decimal
+    total_multas: Decimal
+    total_geral: Decimal
+    itens: list[PreviaUnidadeItem]
+
+    @field_validator("total_rateio", "total_multas", "total_geral")
+    @classmethod
+    def _duas_casas(cls, v: Decimal) -> Decimal:
+        return v.quantize(Decimal("0.01"))

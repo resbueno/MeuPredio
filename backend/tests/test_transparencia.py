@@ -3,7 +3,7 @@ from __future__ import annotations
 from app.models.enums import RoleEnum
 from app.models.predio import Predio
 from app.models.usuario import Usuario
-from tests.utils import auth_header, make_predio, make_user
+from tests.utils import auth_header, make_predio, make_unidade, make_user
 
 
 def _admin_com_predio(db_session, *, email: str) -> tuple[Usuario, Predio]:
@@ -100,3 +100,100 @@ def test_zelador_pode_ver_documento_de_despesa_do_proprio_predio(client, db_sess
     # Nao e mais 403 (papel bloqueado antes de chegar aqui) - passa a guarda
     # de RBAC e cai em 404 so porque o arquivo em si nao existe.
     assert resposta.status_code == 404
+
+
+def test_serie_mensal_tem_o_numero_de_pontos_pedido(client, db_session):
+    admin, predio = _admin_com_predio(db_session, email="admin.t7@test.local")
+    morador = make_user(db_session, email="morador.t7@test.local", role=RoleEnum.MORADOR, predio=predio)
+    _criar_despesa(client, admin, predio)
+
+    resposta = client.get(
+        "/transparencia/balancete/serie",
+        params={"meses": 4},
+        headers=auth_header(morador),
+    )
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert len(corpo) == 4
+    # Mais antigo primeiro.
+    assert (corpo[0]["ano"], corpo[0]["mes"]) < (corpo[-1]["ano"], corpo[-1]["mes"])
+
+
+def test_previa_unidade_soma_rateio_e_multa_da_propria_unidade(client, db_session):
+    admin, predio = _admin_com_predio(db_session, email="admin.t8@test.local")
+    unidade_a = make_unidade(db_session, predio, bloco="A", numero="1")
+    unidade_b = make_unidade(db_session, predio, bloco="B", numero="2")
+    morador = make_user(
+        db_session, email="morador.t8@test.local", role=RoleEnum.MORADOR, predio=predio, unidades=[unidade_a]
+    )
+
+    geral = _criar_despesa(client, admin, predio, descricao="Limpeza", categoria="limpeza", valor="200")
+    client.post(
+        f"/despesas/{geral['id']}/ratear", json={"criterio": "igual"}, headers=auth_header(admin)
+    )
+
+    multa = client.post(
+        "/avisos-diretos",
+        json={
+            "unidade_id": unidade_a.id,
+            "destinatario": "ambos",
+            "tipo": "multa",
+            "titulo": "Barulho",
+            "mensagem": "Reincidencia.",
+            "valor": "50.00",
+            "data_vencimento": "2026-05-15",
+            "predio_id": predio.id,
+        },
+        headers=auth_header(admin),
+    ).json()
+    assert multa["despesa_lancamento_id"] is not None
+
+    resposta = client.get(
+        "/transparencia/previa-unidade",
+        params={"ano": 2026, "mes": 5},
+        headers=auth_header(morador),
+    )
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["unidade_id"] == unidade_a.id
+    assert corpo["total_rateio"] == "100.00"
+    assert corpo["total_multas"] == "50.00"
+    assert corpo["total_geral"] == "150.00"
+    assert len(corpo["itens"]) == 2
+
+    # Unidade B nao tem multa nenhuma - so a fatia do rateio.
+    outro_morador = make_user(
+        db_session, email="morador.t9@test.local", role=RoleEnum.MORADOR, predio=predio, unidades=[unidade_b]
+    )
+    resposta_b = client.get(
+        "/transparencia/previa-unidade",
+        params={"ano": 2026, "mes": 5},
+        headers=auth_header(outro_morador),
+    )
+    corpo_b = resposta_b.json()
+    assert corpo_b["total_multas"] == "0.00"
+    assert corpo_b["total_geral"] == "100.00"
+
+
+def test_morador_nao_ve_previa_de_unidade_alheia(client, db_session):
+    admin, predio = _admin_com_predio(db_session, email="admin.t10@test.local")
+    unidade_a = make_unidade(db_session, predio, bloco="A", numero="1")
+    unidade_b = make_unidade(db_session, predio, bloco="B", numero="2")
+    morador = make_user(
+        db_session, email="morador.t10@test.local", role=RoleEnum.MORADOR, predio=predio, unidades=[unidade_a]
+    )
+
+    resposta = client.get(
+        "/transparencia/previa-unidade",
+        params={"unidade_id": unidade_b.id},
+        headers=auth_header(morador),
+    )
+    assert resposta.status_code == 403
+
+
+def test_gestao_precisa_informar_unidade_id_na_previa(client, db_session):
+    admin, predio = _admin_com_predio(db_session, email="admin.t11@test.local")
+    sindico = make_user(db_session, email="sindico.t11@test.local", role=RoleEnum.SINDICO, predio=predio)
+
+    resposta = client.get("/transparencia/previa-unidade", headers=auth_header(sindico))
+    assert resposta.status_code == 422

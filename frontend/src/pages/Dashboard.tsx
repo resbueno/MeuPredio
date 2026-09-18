@@ -1,9 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AppShell } from "../components/layout/AppShell";
 import { useAuth } from "../auth/AuthContext";
 import { temPapel } from "../auth/roles";
 import { listAvisosMural } from "../api/avisosMural";
 import { listAvisosDiretos } from "../api/avisosDiretos";
+import { aceitarConsentimentoLgpd, revogarConsentimentoLgpd } from "../api/usuarios";
 
 const ROLE_LABELS: Record<string, string> = {
   morador: "Morador",
@@ -23,9 +24,18 @@ function formatarData(data: string): string {
 }
 
 export function Dashboard() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const souAdministrador = user?.role === "administrador";
   const recebeAvisoDireto = temPapel(user, "morador", "proprietario");
+
+  const aceitarConsentimentoMutation = useMutation({
+    mutationFn: () => aceitarConsentimentoLgpd(user!.id),
+    onSuccess: refreshUser,
+  });
+  const revogarConsentimentoMutation = useMutation({
+    mutationFn: () => revogarConsentimentoLgpd(user!.id),
+    onSuccess: refreshUser,
+  });
 
   const { data: avisosCondominio, isLoading } = useQuery({
     queryKey: ["avisos-mural", "proprio", "condominio"],
@@ -45,6 +55,39 @@ export function Dashboard() {
       <p className="mt-1 text-sm text-slate-500">
         Perfil: <span className="font-medium">{user ? ROLE_LABELS[user.role] : ""}</span>
       </p>
+
+      {user && !user.consent_lgpd_accepted_at && (
+        <div className="mt-4 rounded-2xl bg-amber-50 p-4 shadow-sm">
+          <p className="text-sm font-medium text-amber-800">Consentimento de dados (LGPD)</p>
+          <p className="mt-1 text-sm text-amber-700">
+            Para usar o sistema, você precisa concordar com o tratamento dos seus dados pessoais
+            (nome, e-mail, unidade e histórico de uso) pelo MeuPrédio, conforme a Lei Geral de
+            Proteção de Dados.
+          </p>
+          <button
+            type="button"
+            onClick={() => aceitarConsentimentoMutation.mutate()}
+            disabled={aceitarConsentimentoMutation.isPending}
+            className="mt-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+          >
+            Aceitar
+          </button>
+        </div>
+      )}
+      {user && user.consent_lgpd_accepted_at && (
+        <p className="mt-1 text-xs text-slate-400">
+          Consentimento LGPD aceito em{" "}
+          {new Date(user.consent_lgpd_accepted_at).toLocaleDateString("pt-BR")} ·{" "}
+          <button
+            type="button"
+            onClick={() => revogarConsentimentoMutation.mutate()}
+            disabled={revogarConsentimentoMutation.isPending}
+            className="font-medium text-slate-500 underline hover:text-slate-700"
+          >
+            Revogar
+          </button>
+        </p>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-2xl bg-white p-4 shadow-sm">

@@ -10,8 +10,17 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, require_role
 from app.models.despesa_lancamento import DespesaLancamento
 from app.models.enums import RoleEnum, StatusDespesaEnum
+from app.models.rateio_despesa_item import RateioDespesaItem
+from app.models.unidade import Unidade
 from app.models.usuario import Usuario
-from app.schemas.transparencia import BalanceteResponse, DespesaTransparenciaRead, TotalPorCategoria
+from app.schemas.transparencia import (
+    BalanceteMensal,
+    BalanceteResponse,
+    DespesaTransparenciaRead,
+    PreviaUnidadeItem,
+    PreviaUnidadeResponse,
+    TotalPorCategoria,
+)
 
 router = APIRouter(prefix="/transparencia", tags=["transparencia"])
 
@@ -61,6 +70,27 @@ def _limites_periodo(ano: int, mes: int | None) -> tuple[date, date]:
     return inicio, fim_exclusivo
 
 
+def _mes_anterior(ano: int, mes: int) -> tuple[int, int]:
+    return (ano - 1, 12) if mes == 1 else (ano, mes - 1)
+
+
+def _totais_por_status(
+    db: Session, predio_id: int, current_user: Usuario, inicio: date, fim_exclusivo: date
+) -> dict[StatusDespesaEnum, Decimal]:
+    base = db.query(DespesaLancamento).filter(
+        DespesaLancamento.predio_id == predio_id,
+        DespesaLancamento.deleted_at.is_(None),
+        DespesaLancamento.data_vencimento >= inicio,
+        DespesaLancamento.data_vencimento < fim_exclusivo,
+    )
+    base = _restringir_por_unidade(base, current_user)
+    return dict(
+        base.with_entities(DespesaLancamento.status, func.sum(DespesaLancamento.valor))
+        .group_by(DespesaLancamento.status)
+        .all()
+    )
+
+
 @router.get("/despesas", response_model=list[DespesaTransparenciaRead])
 def listar_despesas_transparencia(
     db: Session = Depends(get_db),
@@ -100,28 +130,23 @@ def obter_balancete(
     mes_efetivo = mes if mes is not None else hoje.month
     inicio, fim_exclusivo = _limites_periodo(ano_efetivo, mes_efetivo)
 
-    base = db.query(DespesaLancamento).filter(
-        DespesaLancamento.predio_id == predio_id_efetivo,
-        DespesaLancamento.deleted_at.is_(None),
-        DespesaLancamento.data_vencimento >= inicio,
-        DespesaLancamento.data_vencimento < fim_exclusivo,
-    )
-    base = _restringir_por_unidade(base, current_user)
-
-    totais_por_status = dict(
-        base.with_entities(DespesaLancamento.status, func.sum(DespesaLancamento.valor))
-        .group_by(DespesaLancamento.status)
-        .all()
-    )
+    totais_por_status = _totais_por_status(db, predio_id_efetivo, current_user, inicio, fim_exclusivo)
     total_pago = totais_por_status.get(StatusDespesaEnum.PAGO, Decimal("0"))
     total_pendente = totais_por_status.get(StatusDespesaEnum.PENDENTE, Decimal("0"))
     total_cancelado = totais_por_status.get(StatusDespesaEnum.CANCELADO, Decimal("0"))
 
+    base_categoria = db.query(DespesaLancamento).filter(
+        DespesaLancamento.predio_id == predio_id_efetivo,
+        DespesaLancamento.deleted_at.is_(None),
+        DespesaLancamento.data_vencimento >= inicio,
+        DespesaLancamento.data_vencimento < fim_exclusivo,
+        DespesaLancamento.status != StatusDespesaEnum.CANCELADO,
+    )
+    base_categoria = _restringir_por_unidade(base_categoria, current_user)
     por_categoria = [
         TotalPorCategoria(categoria=categoria, total=total)
         for categoria, total in (
-            base.filter(DespesaLancamento.status != StatusDespesaEnum.CANCELADO)
-            .with_entities(DespesaLancamento.categoria, func.sum(DespesaLancamento.valor))
+            base_categoria.with_entities(DespesaLancamento.categoria, func.sum(DespesaLancamento.valor))
             .group_by(DespesaLancamento.categoria)
             .order_by(DespesaLancamento.categoria)
             .all()
@@ -136,4 +161,141 @@ def obter_balancete(
         total_cancelado=total_cancelado,
         total_geral=total_pago + total_pendente,
         por_categoria=por_categoria,
+    )
+
+
+@router.get("/balancete/serie", response_model=list[BalanceteMensal])
+def obter_serie_mensal(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role()),
+    predio_id: int | None = None,
+    meses: int = Query(default=6, ge=1, le=24),
+) -> list[BalanceteMensal]:
+    """Serie dos ultimos `meses` meses (mais antigo primeiro) - usada pelo
+    grafico de tendencia do Portal da Transparencia."""
+    predio_id_efetivo = _predio_id_efetivo(current_user, predio_id)
+    hoje = date.today()
+
+    pontos: list[BalanceteMensal] = []
+    ano_atual, mes_atual = hoje.year, hoje.month
+    for _ in range(meses):
+        inicio, fim_exclusivo = _limites_periodo(ano_atual, mes_atual)
+        totais = _totais_por_status(db, predio_id_efetivo, current_user, inicio, fim_exclusivo)
+        total_pago = totais.get(StatusDespesaEnum.PAGO, Decimal("0"))
+        total_pendente = totais.get(StatusDespesaEnum.PENDENTE, Decimal("0"))
+        pontos.append(
+            BalanceteMensal(
+                ano=ano_atual,
+                mes=mes_atual,
+                total_pago=total_pago,
+                total_pendente=total_pendente,
+                total_geral=total_pago + total_pendente,
+            )
+        )
+        ano_atual, mes_atual = _mes_anterior(ano_atual, mes_atual)
+
+    return list(reversed(pontos))
+
+
+@router.get("/previa-unidade", response_model=PreviaUnidadeResponse)
+def obter_previa_unidade(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role()),
+    unidade_id: int | None = None,
+    ano: int | None = Query(default=None),
+    mes: int | None = Query(default=None, ge=1, le=12),
+) -> PreviaUnidadeResponse:
+    """Previa da conta de condominio de UMA unidade: a fatia dela nas
+    despesas gerais ratejadas naquele periodo + qualquer despesa exclusiva
+    sua (multa, ver DespesaLancamento.unidade_id) - a soma que a unidade
+    efetivamente deve pagar naquele mes."""
+    e_gestao = bool(current_user.roles_efetivos & set(_GESTAO))
+    if unidade_id is None:
+        if e_gestao:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Informe unidade_id.",
+            )
+        minhas_unidades = current_user.unidades
+        if not minhas_unidades:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Você não está vinculado a nenhuma unidade."
+            )
+        unidade_id = minhas_unidades[0].id
+
+    unidade = db.get(Unidade, unidade_id)
+    if unidade is None or unidade.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade não encontrada.")
+    if current_user.role != RoleEnum.ADMINISTRADOR and unidade.predio_id != current_user.predio_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade não encontrada.")
+    if not e_gestao and unidade_id not in {u.id for u in current_user.unidades}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você só pode ver a prévia das próprias unidades.",
+        )
+
+    hoje = date.today()
+    ano_efetivo = ano if ano is not None else hoje.year
+    mes_efetivo = mes if mes is not None else hoje.month
+    inicio, fim_exclusivo = _limites_periodo(ano_efetivo, mes_efetivo)
+
+    itens_rateio = (
+        db.query(RateioDespesaItem, DespesaLancamento)
+        .join(DespesaLancamento, RateioDespesaItem.despesa_lancamento_id == DespesaLancamento.id)
+        .filter(
+            RateioDespesaItem.unidade_id == unidade_id,
+            DespesaLancamento.deleted_at.is_(None),
+            DespesaLancamento.status != StatusDespesaEnum.CANCELADO,
+            DespesaLancamento.data_vencimento >= inicio,
+            DespesaLancamento.data_vencimento < fim_exclusivo,
+        )
+        .all()
+    )
+    despesas_exclusivas = (
+        db.query(DespesaLancamento)
+        .filter(
+            DespesaLancamento.unidade_id == unidade_id,
+            DespesaLancamento.deleted_at.is_(None),
+            DespesaLancamento.status != StatusDespesaEnum.CANCELADO,
+            DespesaLancamento.data_vencimento >= inicio,
+            DespesaLancamento.data_vencimento < fim_exclusivo,
+        )
+        .all()
+    )
+
+    itens = [
+        PreviaUnidadeItem(
+            despesa_id=despesa.id,
+            descricao=despesa.descricao,
+            categoria=despesa.categoria,
+            tipo="rateio",
+            valor=item.valor,
+            status=despesa.status,
+            data_vencimento=despesa.data_vencimento,
+        )
+        for item, despesa in itens_rateio
+    ] + [
+        PreviaUnidadeItem(
+            despesa_id=despesa.id,
+            descricao=despesa.descricao,
+            categoria=despesa.categoria,
+            tipo="multa",
+            valor=despesa.valor,
+            status=despesa.status,
+            data_vencimento=despesa.data_vencimento,
+        )
+        for despesa in despesas_exclusivas
+    ]
+
+    total_rateio = sum((item.valor for item, _ in itens_rateio), Decimal("0"))
+    total_multas = sum((despesa.valor for despesa in despesas_exclusivas), Decimal("0"))
+
+    return PreviaUnidadeResponse(
+        unidade_id=unidade_id,
+        ano=ano_efetivo,
+        mes=mes_efetivo,
+        total_rateio=total_rateio,
+        total_multas=total_multas,
+        total_geral=total_rateio + total_multas,
+        itens=sorted(itens, key=lambda i: i.data_vencimento),
     )

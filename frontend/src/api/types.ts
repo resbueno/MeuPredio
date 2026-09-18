@@ -206,6 +206,34 @@ export interface Balancete {
   por_categoria: TotalPorCategoria[];
 }
 
+export interface BalanceteMensal {
+  ano: number;
+  mes: number;
+  total_pago: string;
+  total_pendente: string;
+  total_geral: string;
+}
+
+export interface PreviaUnidadeItem {
+  despesa_id: number;
+  descricao: string;
+  categoria: string;
+  tipo: "rateio" | "multa";
+  valor: string;
+  status: StatusDespesaEnum;
+  data_vencimento: string;
+}
+
+export interface PreviaUnidade {
+  unidade_id: number;
+  ano: number;
+  mes: number | null;
+  total_rateio: string;
+  total_multas: string;
+  total_geral: string;
+  itens: PreviaUnidadeItem[];
+}
+
 export interface TicketComentario {
   id: number;
   ticket_id: number;

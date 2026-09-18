@@ -256,6 +256,78 @@ def atualizar_usuario(
     return usuario
 
 
+@router.post("/{usuario_id}/consentimento-lgpd/aceitar", response_model=UsuarioRead)
+def aceitar_consentimento_lgpd(
+    usuario_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+) -> Usuario:
+    """Consentimento LGPD é sempre pessoal - nem a gestão aceita/revoga em
+    nome de outra pessoa, só o próprio titular dos dados."""
+    usuario = _usuario_ou_404(db, usuario_id)
+    if current_user.id != usuario.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Só você pode aceitar o seu próprio consentimento LGPD.",
+        )
+
+    dados_antes = model_to_audit_dict(usuario)
+    usuario.consent_lgpd_accepted_at = datetime.now(timezone.utc)
+    db.add(usuario)
+    db.flush()
+
+    registrar_log(
+        db,
+        usuario_id=current_user.id,
+        acao="LGPD_CONSENT_ACCEPT",
+        entidade="usuarios",
+        entidade_id=usuario.id,
+        dados_antes=dados_antes,
+        dados_depois=model_to_audit_dict(usuario),
+        ip_origem=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
+
+@router.post("/{usuario_id}/consentimento-lgpd/revogar", response_model=UsuarioRead)
+def revogar_consentimento_lgpd(
+    usuario_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+) -> Usuario:
+    usuario = _usuario_ou_404(db, usuario_id)
+    if current_user.id != usuario.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Só você pode revogar o seu próprio consentimento LGPD.",
+        )
+
+    dados_antes = model_to_audit_dict(usuario)
+    usuario.consent_lgpd_accepted_at = None
+    db.add(usuario)
+    db.flush()
+
+    registrar_log(
+        db,
+        usuario_id=current_user.id,
+        acao="LGPD_CONSENT_REVOKE",
+        entidade="usuarios",
+        entidade_id=usuario.id,
+        dados_antes=dados_antes,
+        dados_depois=model_to_audit_dict(usuario),
+        ip_origem=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
+
 @router.delete("/{usuario_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remover_usuario(
     usuario_id: int,
