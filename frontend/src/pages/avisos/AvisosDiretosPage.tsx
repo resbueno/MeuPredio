@@ -196,7 +196,7 @@ export function AvisosDiretosPage() {
         <div className="mb-6 space-y-3 rounded-2xl bg-white p-4 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-700">Enviar aviso direto</h2>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-3" noValidate>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">Unidade</label>
                 <select
@@ -265,7 +265,7 @@ export function AvisosDiretosPage() {
             </div>
 
             {tipoSelecionado === "multa" && (
-              <div className="grid grid-cols-2 gap-3 rounded-lg bg-red-50 p-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 rounded-lg bg-red-50 p-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-slate-600">Valor (R$)</label>
                   <input

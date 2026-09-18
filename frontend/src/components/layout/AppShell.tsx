@@ -103,18 +103,25 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-4 pb-24 md:pb-4">{children}</main>
+        <main className="flex-1 px-4 py-4 pb-24 md:pb-4">
+          <div className="mx-auto w-full max-w-3xl">{children}</div>
+        </main>
 
         {user && (
           <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
-            <ul className="flex justify-around overflow-x-auto">
+            {/* Mais itens do que cabem numa tela de celular de uma vez -
+                rola horizontalmente em vez de espremer tudo (flex-1 faria
+                cada rotulo virar ilegivel com 12 itens). */}
+            <ul
+              className="flex gap-1 overflow-x-auto px-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
               {visibleItems.map((item) => (
-                <li key={item.to} className="flex-1">
+                <li key={item.to} className="shrink-0">
                   <NavLink
                     to={item.to}
                     end={item.to === "/"}
                     className={({ isActive }) =>
-                      `flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
+                      `flex min-w-[64px] flex-col items-center gap-0.5 px-2 py-2 text-center text-[11px] font-medium leading-tight ${
                         isActive ? "text-brand-600" : "text-slate-500"
                       }`
                     }

@@ -161,7 +161,7 @@ export function UnidadesPage() {
           <h2 className="text-sm font-semibold text-slate-700">
             {editing ? `Editar unidade #${editing.id}` : "Nova unidade"}
           </h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">Bloco</label>
               <input
@@ -236,7 +236,7 @@ export function UnidadesPage() {
 
           {mostrarLote && (
             <div className="mt-3 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-slate-600">Bloco</label>
                   <input
@@ -259,7 +259,7 @@ export function UnidadesPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-slate-600">
                     Quantidade de andares
