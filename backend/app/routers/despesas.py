@@ -79,6 +79,14 @@ def _exigir_pendente(despesa: DespesaLancamento, acao: str) -> None:
         )
 
 
+def _exigir_pago(despesa: DespesaLancamento, acao: str) -> None:
+    if despesa.status != StatusDespesaEnum.PAGO:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"So e possivel {acao} um lancamento pago (status atual: {despesa.status.value}).",
+        )
+
+
 @router.post("", response_model=DespesaLancamentoRead, status_code=status.HTTP_201_CREATED)
 def criar_despesa(
     payload: DespesaLancamentoCreate,
@@ -400,6 +408,44 @@ def registrar_pagamento(
     dados_antes = model_to_audit_dict(despesa)
     despesa.status = StatusDespesaEnum.PAGO
     despesa.data_pagamento = payload.data_pagamento
+    db.add(despesa)
+    db.flush()
+
+    registrar_log(
+        db,
+        usuario_id=current_user.id,
+        acao="UPDATE",
+        entidade="despesas_lancamentos",
+        entidade_id=despesa.id,
+        dados_antes=dados_antes,
+        dados_depois=model_to_audit_dict(despesa),
+        ip_origem=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.commit()
+    db.refresh(despesa)
+    return despesa
+
+
+@router.post("/{despesa_id}/desfazer-pagamento", response_model=DespesaLancamentoRead)
+def desfazer_pagamento(
+    despesa_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(*_FINANCEIRO)),
+) -> DespesaLancamento:
+    """Reverte a baixa de um lancamento pago, voltando para pendente.
+
+    Existe porque o PATCH de edicao so aceita lancamento pendente
+    (`_exigir_pendente`) - marcar como paga por engano (ou precisar corrigir
+    um dado depois da baixa) nao pode virar um beco sem saida.
+    """
+    despesa = _despesa_ou_404(db, despesa_id, current_user)
+    _exigir_pago(despesa, "desfazer o pagamento de")
+
+    dados_antes = model_to_audit_dict(despesa)
+    despesa.status = StatusDespesaEnum.PENDENTE
+    despesa.data_pagamento = None
     db.add(despesa)
     db.flush()
 

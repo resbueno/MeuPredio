@@ -196,6 +196,51 @@ def test_nao_pode_editar_despesa_ja_paga(client, db_session):
     assert resposta.status_code == 409
 
 
+def test_desfazer_pagamento_volta_para_pendente_e_libera_edicao(client, db_session):
+    admin, predio = _admin_com_predio(db_session, email="admin.d10@test.local")
+    criada = client.post(
+        "/despesas",
+        json={
+            "descricao": "Gas",
+            "categoria": "gas",
+            "valor": "80",
+            "data_vencimento": "2026-10-15",
+            "predio_id": predio.id,
+        },
+        headers=auth_header(admin),
+    ).json()
+    client.post(f"/despesas/{criada['id']}/pagar", json={}, headers=auth_header(admin))
+
+    desfeito = client.post(f"/despesas/{criada['id']}/desfazer-pagamento", headers=auth_header(admin))
+    assert desfeito.status_code == 200
+    assert desfeito.json()["status"] == "pendente"
+    assert desfeito.json()["data_pagamento"] is None
+
+    edicao = client.patch(
+        f"/despesas/{criada['id']}", json={"valor": "999"}, headers=auth_header(admin)
+    )
+    assert edicao.status_code == 200
+    assert edicao.json()["valor"] == "999.00"
+
+
+def test_desfazer_pagamento_de_despesa_pendente_retorna_409(client, db_session):
+    admin, predio = _admin_com_predio(db_session, email="admin.d11@test.local")
+    criada = client.post(
+        "/despesas",
+        json={
+            "descricao": "Gas",
+            "categoria": "gas",
+            "valor": "80",
+            "data_vencimento": "2026-10-15",
+            "predio_id": predio.id,
+        },
+        headers=auth_header(admin),
+    ).json()
+
+    resposta = client.post(f"/despesas/{criada['id']}/desfazer-pagamento", headers=auth_header(admin))
+    assert resposta.status_code == 409
+
+
 def test_cancelar_despesa(client, db_session):
     admin, predio = _admin_com_predio(db_session, email="admin.d6@test.local")
     criada = client.post(

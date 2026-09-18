@@ -31,6 +31,11 @@ export async function cancelarDespesa(id: number): Promise<DespesaLancamento> {
   return data;
 }
 
+export async function desfazerPagamento(id: number): Promise<DespesaLancamento> {
+  const { data } = await apiClient.post<DespesaLancamento>(`/despesas/${id}/desfazer-pagamento`);
+  return data;
+}
+
 export async function extrairBoleto(
   arquivo: File,
   predioId?: number | null

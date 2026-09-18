@@ -9,6 +9,7 @@ import { useAuth } from "../../auth/AuthContext";
 import {
   cancelarDespesa,
   createDespesa,
+  desfazerPagamento,
   extrairBoleto,
   listDespesas,
   registrarPagamento,
@@ -259,6 +260,10 @@ export function DespesasPage() {
 
   const pagarMutation = useMutation({ mutationFn: registrarPagamento, onSuccess: invalidateDespesas });
   const cancelarMutation = useMutation({ mutationFn: cancelarDespesa, onSuccess: invalidateDespesas });
+  const desfazerPagamentoMutation = useMutation({
+    mutationFn: desfazerPagamento,
+    onSuccess: invalidateDespesas,
+  });
 
   function onSelecionarArquivo(event: ChangeEvent<HTMLInputElement>): void {
     const arquivo = event.target.files?.[0];
@@ -490,6 +495,16 @@ export function DespesasPage() {
                     Cancelar
                   </button>
                 </div>
+              )}
+              {despesa.status === "pago" && (
+                <button
+                  type="button"
+                  onClick={() => desfazerPagamentoMutation.mutate(despesa.id)}
+                  disabled={desfazerPagamentoMutation.isPending}
+                  className="text-xs font-medium text-amber-600 disabled:opacity-60"
+                >
+                  Desfazer pagamento
+                </button>
               )}
             </div>
           </li>
