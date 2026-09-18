@@ -15,10 +15,12 @@ from app.models.ticket_atendimento import TicketAtendimento  # noqa: F401
 from app.models.ticket_comentario import TicketComentario  # noqa: F401
 from app.models.unidade import Unidade  # noqa: F401
 from app.models.usuario import Usuario  # noqa: F401
+from app.models.usuario_papel_extra import UsuarioPapelExtra  # noqa: F401
 from app.models.veiculo import Veiculo  # noqa: F401
 
 __all__ = [
     "Usuario",
+    "UsuarioPapelExtra",
     "Unidade",
     "Veiculo",
     "LogAuditoria",

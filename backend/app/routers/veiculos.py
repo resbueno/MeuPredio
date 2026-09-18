@@ -46,7 +46,7 @@ def _autorizar_acesso_morador(current_user: Usuario, veiculo: Veiculo) -> None:
     """Um morador/proprietário só enxerga veículos das PRÓPRIAS unidades
     (relação N:N - pode ter mais de uma); papéis operacionais
     (administrador/síndico/zelador) enxergam qualquer veículo do prédio."""
-    if current_user.role in _OPERACIONAIS:
+    if current_user.roles_efetivos & set(_OPERACIONAIS):
         return
     minhas_unidades = {u.id for u in current_user.unidades}
     if veiculo.unidade_id not in minhas_unidades:
@@ -102,7 +102,7 @@ def listar_veiculos(
     if not incluir_inativos:
         query = query.filter(Veiculo.deleted_at.is_(None))
 
-    if current_user.role in _OPERACIONAIS:
+    if current_user.roles_efetivos & set(_OPERACIONAIS):
         if current_user.role != RoleEnum.ADMINISTRADOR:
             query = query.filter(Unidade.predio_id == current_user.predio_id)
         if unidade_id is not None:

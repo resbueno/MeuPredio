@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { AppShell } from "../../components/layout/AppShell";
 import { useAuth } from "../../auth/AuthContext";
+import { temPapel } from "../../auth/roles";
 import { createVeiculo, deleteVeiculo, listVeiculos, updateVeiculo } from "../../api/veiculos";
 import { listUnidades } from "../../api/unidades";
 import type { TipoVeiculoEnum, Veiculo, VeiculoInput } from "../../api/types";
@@ -41,8 +42,7 @@ export function VeiculosPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Veiculo | null>(null);
-  const podeGerenciar =
-    user?.role === "administrador" || user?.role === "sindico" || user?.role === "zelador";
+  const podeGerenciar = temPapel(user, "administrador", "sindico", "zelador");
 
   const souAdministrador = user?.role === "administrador";
 

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import { temPapel } from "../../auth/roles";
 import type { RoleEnum } from "../../api/types";
 import logoIcon from "../../assets/logo-icon.png";
 
@@ -34,7 +35,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const visibleItems = NAV_ITEMS.filter(
-    (item) => !item.roles || (user && item.roles.includes(user.role))
+    (item) => !item.roles || temPapel(user, ...item.roles)
   );
 
   return (

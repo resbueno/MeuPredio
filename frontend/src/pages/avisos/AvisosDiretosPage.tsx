@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { AppShell } from "../../components/layout/AppShell";
 import { useAuth } from "../../auth/AuthContext";
+import { temPapel } from "../../auth/roles";
 import {
   createAvisoDireto,
   deleteAvisoDireto,
@@ -89,7 +90,7 @@ function ResponderForm({ avisoId }: { avisoId: number }) {
 export function AvisosDiretosPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const souGestao = user?.role === "administrador" || user?.role === "sindico";
+  const souGestao = temPapel(user, "administrador", "sindico");
   const souAdministrador = user?.role === "administrador";
 
   const [predioIdAdminInput, setPredioIdAdminInput] = useState("");

@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { AppShell } from "../../components/layout/AppShell";
 import { useAuth } from "../../auth/AuthContext";
+import { temPapel } from "../../auth/roles";
 import {
   assumirTicket,
   cancelarTicket,
@@ -104,7 +105,7 @@ function ComentarioForm({ ticketId }: { ticketId: number }) {
 export function TicketsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const souGestao = user?.role === "administrador" || user?.role === "sindico" || user?.role === "zelador";
+  const souGestao = temPapel(user, "administrador", "sindico", "zelador");
   const souAdministrador = user?.role === "administrador";
 
   const [predioIdAdminInput, setPredioIdAdminInput] = useState("");

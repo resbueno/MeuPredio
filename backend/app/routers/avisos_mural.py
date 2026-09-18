@@ -34,7 +34,7 @@ def _aviso_ou_404(db: Session, aviso_id: int, current_user: Usuario) -> AvisoMur
 
 def _exigir_pode_editar(aviso: AvisoMural, current_user: Usuario) -> None:
     if aviso.tipo == TipoAvisoMuralEnum.CONDOMINIO:
-        if current_user.role not in _GESTAO:
+        if not (current_user.roles_efetivos & set(_GESTAO)):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Só síndico ou administrador edita um aviso de condomínio.",
@@ -49,7 +49,7 @@ def _exigir_pode_editar(aviso: AvisoMural, current_user: Usuario) -> None:
 
 def _exigir_pode_remover(aviso: AvisoMural, current_user: Usuario) -> None:
     if aviso.tipo == TipoAvisoMuralEnum.CONDOMINIO:
-        if current_user.role not in _GESTAO:
+        if not (current_user.roles_efetivos & set(_GESTAO)):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Só síndico ou administrador remove um aviso de condomínio.",
@@ -57,7 +57,7 @@ def _exigir_pode_remover(aviso: AvisoMural, current_user: Usuario) -> None:
         return
     # Anuncio: o proprio autor remove, OU a gestao modera (spec: "admin e
     # sindico podem remover anuncios de venda").
-    if aviso.created_by != current_user.id and current_user.role not in _GESTAO:
+    if aviso.created_by != current_user.id and not (current_user.roles_efetivos & set(_GESTAO)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você não tem permissão para remover este anúncio.",
@@ -71,7 +71,7 @@ def criar_aviso_mural(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role()),
 ) -> AvisoMural:
-    if payload.tipo == TipoAvisoMuralEnum.CONDOMINIO and current_user.role not in _GESTAO:
+    if payload.tipo == TipoAvisoMuralEnum.CONDOMINIO and not (current_user.roles_efetivos & set(_GESTAO)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Só síndico ou administrador publica um aviso de condomínio.",

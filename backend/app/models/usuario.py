@@ -15,6 +15,7 @@ from app.models.enums import RoleEnum
 if TYPE_CHECKING:
     from app.models.predio import Predio
     from app.models.unidade import Unidade
+    from app.models.usuario_papel_extra import UsuarioPapelExtra
 
 
 class Usuario(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
@@ -82,6 +83,22 @@ class Usuario(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
     unidades: Mapped[list["Unidade"]] = relationship(
         "Unidade", secondary=usuario_unidades, back_populates="usuarios"
     )
+    papeis_extra: Mapped[list["UsuarioPapelExtra"]] = relationship(
+        "UsuarioPapelExtra",
+        back_populates="usuario",
+        foreign_keys="UsuarioPapelExtra.usuario_id",
+        cascade="all, delete-orphan",
+    )
+
+    @property
+    def roles_efetivos(self) -> set[RoleEnum]:
+        """Papel principal + papéis adicionais (ver `UsuarioPapelExtra`) -
+        conjunto usado por toda checagem de permissão que hoje faria
+        `current_user.role in (...)`. `ADMINISTRADOR` nunca aparece como
+        extra (exclusivo, ver validação em routers/usuarios.py), então
+        checagens que dependem de "é EXATAMENTE o administrador global"
+        continuam usando `.role` direto, não este conjunto."""
+        return {self.role} | {p.role for p in self.papeis_extra}
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Usuario id={self.id} email={self.email!r} role={self.role} predio_id={self.predio_id}>"

@@ -11,6 +11,7 @@ from app.models.enums import RoleEnum
 from app.models.predio import Predio
 from app.models.unidade import Unidade
 from app.models.usuario import Usuario
+from app.models.usuario_papel_extra import UsuarioPapelExtra
 
 # Contador monotônico em processo: cada chamada a make_predio() sem cep/numero
 # explícitos gera um par único, mesmo entre testes diferentes (cada teste usa
@@ -65,6 +66,7 @@ def make_user(
     predio: Predio | None = None,
     unidades: list[Unidade] | None = None,
     is_active: bool = True,
+    papeis_extra: list[RoleEnum] | None = None,
 ) -> Usuario:
     """Cria um usuário de teste. Para qualquer papel exceto ADMINISTRADOR
     (que é global, sem prédio), exige vínculo com prédio+unidade(s) - se
@@ -93,6 +95,7 @@ def make_user(
         predio_id=predio_id,
         unidades=unidade_objs,
         is_active=is_active,
+        papeis_extra=[UsuarioPapelExtra(role=papel) for papel in (papeis_extra or [])],
     )
     db.add(user)
     db.commit()

@@ -30,6 +30,7 @@ const usuarioSchema = z.object({
   full_name: z.string().min(2, "Informe o nome completo."),
   role: z.enum(["morador", "proprietario", "sindico", "zelador", "administrador"]),
   unidade_ids: z.array(z.number()).default([]),
+  papeis_extra: z.array(z.enum(["morador", "proprietario", "sindico", "zelador", "administrador"])).default([]),
   predio_id: z.string().optional(),
   password: z.string().optional(),
 });
@@ -61,6 +62,7 @@ export function UsuariosPage() {
       full_name: "",
       role: "morador",
       unidade_ids: [],
+      papeis_extra: [],
       predio_id: "",
       password: "",
     },
@@ -73,17 +75,27 @@ export function UsuariosPage() {
         full_name: editing.full_name,
         role: editing.role,
         unidade_ids: editing.unidade_ids,
+        papeis_extra: editing.papeis_extra,
         predio_id: editing.predio_id ? String(editing.predio_id) : "",
         password: "",
       });
     } else {
-      reset({ email: "", full_name: "", role: "morador", unidade_ids: [], predio_id: "", password: "" });
+      reset({
+        email: "",
+        full_name: "",
+        role: "morador",
+        unidade_ids: [],
+        papeis_extra: [],
+        predio_id: "",
+        password: "",
+      });
     }
   }, [editing, reset]);
 
   const roleSelecionado = watch("role");
   const predioIdDigitado = watch("predio_id");
   const unidadeIdsSelecionadas = watch("unidade_ids");
+  const papeisExtraSelecionados = watch("papeis_extra");
 
   // Escopo do combo de unidades: administrador digita o predio_id na hora de
   // criar; ao editar, usa o predio do proprio usuario editado; qualquer
@@ -109,13 +121,30 @@ export function UsuariosPage() {
     );
   }
 
+  function togglePapelExtra(papel: RoleEnum): void {
+    const atual = papeisExtraSelecionados ?? [];
+    setValue(
+      "papeis_extra",
+      atual.includes(papel) ? atual.filter((p) => p !== papel) : [...atual, papel],
+      { shouldValidate: true }
+    );
+  }
+
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["usuarios"] });
 
   const createMutation = useMutation({
     mutationFn: createUsuario,
     onSuccess: () => {
       invalidate();
-      reset({ email: "", full_name: "", role: "morador", unidade_ids: [], predio_id: "", password: "" });
+      reset({
+        email: "",
+        full_name: "",
+        role: "morador",
+        unidade_ids: [],
+        papeis_extra: [],
+        predio_id: "",
+        password: "",
+      });
     },
   });
 
@@ -139,6 +168,7 @@ export function UsuariosPage() {
         full_name: values.full_name,
         role: values.role,
         unidade_ids: values.role === "administrador" ? [] : values.unidade_ids,
+        papeis_extra: values.role === "administrador" ? [] : values.papeis_extra,
       };
       if (values.password) {
         input.password = values.password;
@@ -155,6 +185,7 @@ export function UsuariosPage() {
       full_name: values.full_name,
       role: values.role,
       unidade_ids: values.role === "administrador" ? [] : values.unidade_ids,
+      papeis_extra: values.role === "administrador" ? [] : values.papeis_extra,
       predio_id: predioId ? Number(predioId) : undefined,
       password: values.password,
     };
@@ -254,6 +285,33 @@ export function UsuariosPage() {
           </div>
         )}
 
+        {roleSelecionado !== "administrador" && (
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              Papéis adicionais (opcional)
+            </label>
+            <p className="mb-1 text-xs text-slate-400">
+              O mesmo login pode acumular funções - ex.: um síndico que também é morador da
+              própria unidade.
+            </p>
+            <div className="flex flex-wrap gap-3 rounded-lg border border-slate-300 p-2">
+              {ROLES.filter((role) => role !== "administrador" && role !== roleSelecionado).map(
+                (role) => (
+                  <label key={role} className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={(papeisExtraSelecionados ?? []).includes(role)}
+                      onChange={() => togglePapelExtra(role)}
+                      className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
+                    />
+                    {ROLE_LABELS[role]}
+                  </label>
+                )
+              )}
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">
             {editing ? "Nova senha (opcional)" : "Senha"}
@@ -303,6 +361,8 @@ export function UsuariosPage() {
                 <p className="truncate text-xs text-slate-500">{usuario.email}</p>
                 <p className="mt-0.5 text-xs text-slate-500">
                   {ROLE_LABELS[usuario.role]}
+                  {usuario.papeis_extra.length > 0 &&
+                    ` + ${usuario.papeis_extra.map((p) => ROLE_LABELS[p]).join(", ")}`}
                   {!usuario.is_active && " - inativo"}
                 </p>
               </div>

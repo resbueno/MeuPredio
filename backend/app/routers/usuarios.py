@@ -12,6 +12,7 @@ from app.core.security import hash_password
 from app.models.enums import RoleEnum
 from app.models.unidade import Unidade
 from app.models.usuario import Usuario
+from app.models.usuario_papel_extra import UsuarioPapelExtra
 from app.schemas.usuario import UsuarioCreate, UsuarioRead, UsuarioUpdate
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
@@ -37,12 +38,12 @@ def _autorizar_acesso_ou_self(current_user: Usuario, alvo: Usuario) -> None:
     (404), sem confirmar que o usuário existe em outro tenant."""
     if current_user.id == alvo.id:
         return
-    if current_user.role not in _GESTORES:
+    if not (current_user.roles_efetivos & set(_GESTORES)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você só pode acessar o seu próprio cadastro.",
         )
-    if current_user.role == RoleEnum.SINDICO and current_user.predio_id != alvo.predio_id:
+    if current_user.role != RoleEnum.ADMINISTRADOR and current_user.predio_id != alvo.predio_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
 
 
@@ -104,6 +105,10 @@ def criar_usuario(
         role=payload.role,
         predio_id=predio_id,
         unidades=unidades,
+        papeis_extra=[
+            UsuarioPapelExtra(role=papel, created_by=current_user.id)
+            for papel in payload.papeis_extra
+        ],
         is_active=True,
         created_by=current_user.id,
     )
@@ -158,7 +163,7 @@ def obter_usuario(
 ) -> Usuario:
     usuario = _usuario_ou_404(db, usuario_id)
     _autorizar_acesso_ou_self(current_user, usuario)
-    if usuario.deleted_at is not None and current_user.role not in _GESTORES:
+    if usuario.deleted_at is not None and not (current_user.roles_efetivos & set(_GESTORES)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
     return usuario
 
@@ -174,10 +179,10 @@ def atualizar_usuario(
     usuario = _usuario_ou_404(db, usuario_id)
     _autorizar_acesso_ou_self(current_user, usuario)
 
-    is_gestor = current_user.role in _GESTORES
+    is_gestor = bool(current_user.roles_efetivos & set(_GESTORES))
     campos_enviados = payload.model_dump(exclude_unset=True)
 
-    campos_restritos_a_gestor = {"role", "is_active", "unidade_ids"}
+    campos_restritos_a_gestor = {"role", "is_active", "unidade_ids", "papeis_extra"}
     if not is_gestor and campos_restritos_a_gestor.intersection(campos_enviados):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -196,6 +201,18 @@ def atualizar_usuario(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Não é possível rebaixar um administrador para um papel vinculado a prédio por aqui.",
         )
+    if "papeis_extra" in campos_enviados:
+        novos_papeis_extra = campos_enviados["papeis_extra"]
+        if novo_role == RoleEnum.ADMINISTRADOR and novos_papeis_extra:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Administrador é um papel global e não acumula outros papéis.",
+            )
+        if novo_role in novos_papeis_extra:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="O papel principal não pode se repetir na lista de papéis adicionais.",
+            )
 
     dados_antes = model_to_audit_dict(usuario)
 
@@ -210,6 +227,11 @@ def atualizar_usuario(
         usuario.unidades = _validar_unidades(db, campos_enviados["unidade_ids"], usuario.predio_id)
     if "role" in campos_enviados:
         usuario.role = campos_enviados["role"]
+    if "papeis_extra" in campos_enviados:
+        usuario.papeis_extra = [
+            UsuarioPapelExtra(role=papel, created_by=current_user.id)
+            for papel in campos_enviados["papeis_extra"]
+        ]
     if "is_active" in campos_enviados:
         usuario.is_active = campos_enviados["is_active"]
     if campos_enviados.get("password"):
@@ -244,7 +266,7 @@ def remover_usuario(
     """Soft-delete: marca `deleted_at` e desativa o usuário. Nunca faz DELETE
     físico — preserva histórico para auditoria e possível restauração."""
     usuario = _usuario_ou_404(db, usuario_id)
-    if current_user.role == RoleEnum.SINDICO and current_user.predio_id != usuario.predio_id:
+    if current_user.role != RoleEnum.ADMINISTRADOR and current_user.predio_id != usuario.predio_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
     if usuario.deleted_at is not None:
         return None

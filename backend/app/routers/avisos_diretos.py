@@ -26,18 +26,23 @@ def _client_ip(request: Request) -> str | None:
     return request.client.host if request.client else None
 
 
-def _destinatario_bate_com_role(destinatario: DestinatarioAvisoEnum, role: RoleEnum) -> bool:
+def _destinatario_bate_com_algum_papel(
+    destinatario: DestinatarioAvisoEnum, roles: set[RoleEnum]
+) -> bool:
+    """`roles` são os `roles_efetivos` do usuário (papel principal + extras)
+    - basta UM bater, já que a mesma pessoa pode acumular papéis (ex.: ser
+    morador E proprietário da mesma unidade)."""
     if destinatario == DestinatarioAvisoEnum.AMBOS:
-        return role in (RoleEnum.MORADOR, RoleEnum.PROPRIETARIO)
-    return destinatario.value == role.value
+        return bool(roles & {RoleEnum.MORADOR, RoleEnum.PROPRIETARIO})
+    return any(role.value == destinatario.value for role in roles)
 
 
 def _pode_ver(aviso: AvisoDireto, current_user: Usuario) -> bool:
-    if current_user.role in _EMISSORES:
+    if current_user.roles_efetivos & set(_EMISSORES):
         return True
     unidade_ids = {u.id for u in current_user.unidades}
-    return aviso.unidade_id in unidade_ids and _destinatario_bate_com_role(
-        aviso.destinatario, current_user.role
+    return aviso.unidade_id in unidade_ids and _destinatario_bate_com_algum_papel(
+        aviso.destinatario, current_user.roles_efetivos
     )
 
 
@@ -131,7 +136,7 @@ def listar_avisos_diretos(
 ) -> list[AvisoDireto]:
     query = db.query(AvisoDireto).filter(AvisoDireto.deleted_at.is_(None))
 
-    if current_user.role in _EMISSORES:
+    if current_user.roles_efetivos & set(_EMISSORES):
         if current_user.role == RoleEnum.ADMINISTRADOR:
             if predio_id is not None:
                 query = query.filter(AvisoDireto.predio_id == predio_id)
@@ -143,13 +148,18 @@ def listar_avisos_diretos(
         unidade_ids = [u.id for u in current_user.unidades]
         if not unidade_ids:
             return []
+        papeis_destinatario = current_user.roles_efetivos & {
+            RoleEnum.MORADOR,
+            RoleEnum.PROPRIETARIO,
+        }
+        condicoes_destinatario = [AvisoDireto.destinatario == DestinatarioAvisoEnum.AMBOS] + [
+            AvisoDireto.destinatario == DestinatarioAvisoEnum(papel.value)
+            for papel in papeis_destinatario
+        ]
         query = query.filter(
             AvisoDireto.predio_id == current_user.predio_id,
             AvisoDireto.unidade_id.in_(unidade_ids),
-            or_(
-                AvisoDireto.destinatario == DestinatarioAvisoEnum.AMBOS,
-                AvisoDireto.destinatario == DestinatarioAvisoEnum(current_user.role.value),
-            ),
+            or_(*condicoes_destinatario),
         )
 
     return query.order_by(AvisoDireto.created_at.desc()).all()
@@ -188,7 +198,7 @@ def responder_aviso_direto(
     current_user: Usuario = Depends(require_role()),
 ) -> AvisoDireto:
     aviso = _aviso_ou_404(db, aviso_id, current_user)
-    if current_user.role in _EMISSORES:
+    if current_user.roles_efetivos & set(_EMISSORES):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Só o destinatário do aviso pode respondê-lo.",

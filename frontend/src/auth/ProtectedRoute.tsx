@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { temPapel } from "./roles";
 import type { RoleEnum } from "../api/types";
 import { SplashScreen } from "../components/SplashScreen";
 
@@ -21,7 +22,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && !temPapel(user, ...allowedRoles)) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-2 px-4 text-center">
         <p className="text-lg font-semibold text-slate-800">Acesso restrito</p>

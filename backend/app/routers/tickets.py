@@ -49,7 +49,7 @@ def _exigir_pode_ver(ticket: TicketAtendimento, current_user: Usuario) -> None:
     """Alem do isolamento por predio (`_ticket_ou_404`), um morador so pode
     ver/comentar/cancelar o PROPRIO chamado - a gestao (sindico/zelador/
     administrador) ve todos os do predio."""
-    e_gestao = current_user.role in _GESTAO
+    e_gestao = bool(current_user.roles_efetivos & set(_GESTAO))
     if not e_gestao and ticket.created_by != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chamado não encontrado.")
 
@@ -124,7 +124,7 @@ def listar_tickets(
             query = query.filter(TicketAtendimento.predio_id == predio_id)
     else:
         query = query.filter(TicketAtendimento.predio_id == current_user.predio_id)
-        if current_user.role not in _GESTAO:
+        if not (current_user.roles_efetivos & set(_GESTAO)):
             query = query.filter(TicketAtendimento.created_by == current_user.id)
 
     if status_ is not None:
@@ -205,7 +205,7 @@ def assumir_ticket(
         if (
             responsavel is None
             or responsavel.is_deleted
-            or responsavel.role not in _GESTAO
+            or not (responsavel.roles_efetivos & set(_GESTAO))
             or responsavel.predio_id != ticket.predio_id
         ):
             raise HTTPException(

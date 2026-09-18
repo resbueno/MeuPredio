@@ -34,7 +34,7 @@ def _ocorrencia_ou_404(db: Session, ocorrencia_id: int, current_user: Usuario) -
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ocorrência não encontrada.")
     if current_user.role != RoleEnum.ADMINISTRADOR and ocorrencia.predio_id != current_user.predio_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ocorrência não encontrada.")
-    e_gestao = current_user.role in _GESTAO
+    e_gestao = bool(current_user.roles_efetivos & set(_GESTAO))
     if not e_gestao and ocorrencia.created_by != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ocorrência não encontrada.")
     return ocorrencia
@@ -92,7 +92,7 @@ def listar_ocorrencias(
             query = query.filter(Ocorrencia.predio_id == predio_id)
     else:
         query = query.filter(Ocorrencia.predio_id == current_user.predio_id)
-        if current_user.role not in _GESTAO:
+        if not (current_user.roles_efetivos & set(_GESTAO)):
             query = query.filter(Ocorrencia.created_by == current_user.id)
 
     return query.order_by(Ocorrencia.created_at.desc()).all()

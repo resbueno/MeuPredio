@@ -78,11 +78,16 @@ def require_role(*roles: RoleEnum):
 
     Uso: `current_user: Usuario = Depends(require_role(RoleEnum.ADMINISTRADOR))`.
     Sem papéis == qualquer usuário autenticado (equivalente a `get_current_user`).
+
+    Compara contra `roles_efetivos` (papel principal + papéis adicionais,
+    ver `Usuario.roles_efetivos`) - basta UM papel do usuário bater com um
+    dos permitidos, já que a mesma pessoa pode acumular funções (ex.: um
+    síndico que também é morador da própria unidade).
     """
     allowed = set(roles)
 
     def _dependency(current_user: Usuario = Depends(get_current_user)) -> Usuario:
-        if allowed and current_user.role not in allowed:
+        if allowed and not (current_user.roles_efetivos & allowed):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Você não tem permissão para executar esta ação.",

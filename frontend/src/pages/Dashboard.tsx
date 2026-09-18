@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "../components/layout/AppShell";
 import { useAuth } from "../auth/AuthContext";
+import { temPapel } from "../auth/roles";
 import { listAvisosMural } from "../api/avisosMural";
 import { listAvisosDiretos } from "../api/avisosDiretos";
 
@@ -24,7 +25,7 @@ function formatarData(data: string): string {
 export function Dashboard() {
   const { user } = useAuth();
   const souAdministrador = user?.role === "administrador";
-  const recebeAvisoDireto = user?.role === "morador" || user?.role === "proprietario";
+  const recebeAvisoDireto = temPapel(user, "morador", "proprietario");
 
   const { data: avisosCondominio, isLoading } = useQuery({
     queryKey: ["avisos-mural", "proprio", "condominio"],

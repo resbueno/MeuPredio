@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { AppShell } from "../../components/layout/AppShell";
 import { useAuth } from "../../auth/AuthContext";
+import { temPapel } from "../../auth/roles";
 import {
   createUnidade,
   createUnidadesLote,
@@ -54,7 +55,7 @@ export function UnidadesPage() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Unidade | null>(null);
   const souAdministrador = user?.role === "administrador";
-  const podeGerenciar = souAdministrador || user?.role === "sindico";
+  const podeGerenciar = temPapel(user, "administrador", "sindico");
 
   const { data: unidades, isLoading } = useQuery({
     queryKey: ["unidades"],

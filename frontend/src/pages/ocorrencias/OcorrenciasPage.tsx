@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { AppShell } from "../../components/layout/AppShell";
 import { useAuth } from "../../auth/AuthContext";
+import { temPapel } from "../../auth/roles";
 import { createOcorrencia, listOcorrencias, updateOcorrencia } from "../../api/ocorrencias";
 import type { Ocorrencia } from "../../api/types";
 
@@ -22,7 +23,7 @@ function formatarData(data: string): string {
 export function OcorrenciasPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const podeEditar = user?.role === "administrador" || user?.role === "sindico";
+  const podeEditar = temPapel(user, "administrador", "sindico");
   const souAdministrador = user?.role === "administrador";
 
   const [predioIdAdminInput, setPredioIdAdminInput] = useState("");

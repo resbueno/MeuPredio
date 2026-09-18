@@ -11,6 +11,7 @@ export interface Usuario {
   role: RoleEnum;
   predio_id: number | null;
   unidade_ids: number[];
+  papeis_extra: RoleEnum[];
   is_active: boolean;
   consent_lgpd_accepted_at: string | null;
   last_login_at: string | null;
@@ -25,6 +26,7 @@ export interface UsuarioCreateInput {
   full_name: string;
   role: RoleEnum;
   unidade_ids?: number[];
+  papeis_extra?: RoleEnum[];
   predio_id?: number | null;
   password: string;
 }
@@ -33,6 +35,7 @@ export interface UsuarioUpdateInput {
   full_name?: string;
   role?: RoleEnum;
   unidade_ids?: number[];
+  papeis_extra?: RoleEnum[];
   is_active?: boolean;
   password?: string;
 }

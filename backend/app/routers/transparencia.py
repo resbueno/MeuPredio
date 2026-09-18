@@ -41,7 +41,7 @@ def _restringir_por_unidade(query, current_user: Usuario):
     ver DespesaLancamento.unidade_id) só é visível à gestão e a quem mora/é
     dono daquela unidade - nunca aos demais condôminos. Despesas gerais
     (`unidade_id is None`) continuam públicas a todo mundo do prédio."""
-    if current_user.role in _GESTAO:
+    if current_user.roles_efetivos & set(_GESTAO):
         return query
     unidade_ids = [u.id for u in current_user.unidades]
     return query.filter(

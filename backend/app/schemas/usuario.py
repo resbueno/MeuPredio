@@ -12,6 +12,11 @@ class UsuarioBase(BaseModel):
     full_name: str = Field(min_length=2, max_length=255)
     role: RoleEnum = RoleEnum.MORADOR
     unidade_ids: list[int] = Field(default_factory=list)
+    # Papeis ADICIONAIS que o mesmo login acumula (ex.: sindico que tambem e
+    # morador da propria unidade) - ver Usuario.roles_efetivos.
+    # ADMINISTRADOR nunca entra aqui: e um papel global exclusivo (ver
+    # validacao abaixo e em routers/usuarios.py).
+    papeis_extra: list[RoleEnum] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _exigir_unidade_exceto_administrador(self) -> "UsuarioBase":
@@ -21,6 +26,18 @@ class UsuarioBase(BaseModel):
             )
         if self.role == RoleEnum.ADMINISTRADOR and self.unidade_ids:
             raise ValueError("Administrador e um papel global e nao pode estar vinculado a unidades.")
+        return self
+
+    @model_validator(mode="after")
+    def _validar_papeis_extra(self) -> "UsuarioBase":
+        if RoleEnum.ADMINISTRADOR in self.papeis_extra:
+            raise ValueError("Administrador nao pode ser um papel adicional - e sempre exclusivo.")
+        if self.role == RoleEnum.ADMINISTRADOR and self.papeis_extra:
+            raise ValueError("Administrador e um papel global e nao acumula outros papeis.")
+        if self.role in self.papeis_extra:
+            raise ValueError("O papel principal nao pode se repetir na lista de papeis adicionais.")
+        if len(set(self.papeis_extra)) != len(self.papeis_extra):
+            raise ValueError("Papeis adicionais repetidos na lista.")
         return self
 
 
@@ -50,8 +67,27 @@ class UsuarioUpdate(BaseModel):
     full_name: str | None = Field(default=None, min_length=2, max_length=255)
     role: RoleEnum | None = None
     unidade_ids: list[int] | None = None
+    # Substitui a lista inteira quando enviado (mesmo padrao de
+    # unidade_ids) - None significa "nao alterar". Consistencia com `role`
+    # (ex.: nao pode conter o proprio papel principal, nem ADMINISTRADOR) e
+    # validada no router, que e quem sabe o papel principal ATUAL quando
+    # este campo vem sem `role` no mesmo payload.
+    papeis_extra: list[RoleEnum] | None = None
     is_active: bool | None = None
     password: str | None = Field(default=None, min_length=8, max_length=128)
+
+    @field_validator("papeis_extra")
+    @classmethod
+    def _papeis_extra_sem_administrador_nem_duplicata(
+        cls, v: list[RoleEnum] | None
+    ) -> list[RoleEnum] | None:
+        if v is None:
+            return v
+        if RoleEnum.ADMINISTRADOR in v:
+            raise ValueError("Administrador nao pode ser um papel adicional - e sempre exclusivo.")
+        if len(set(v)) != len(v):
+            raise ValueError("Papeis adicionais repetidos na lista.")
+        return v
 
     @field_validator("password")
     @classmethod
@@ -85,6 +121,7 @@ class UsuarioRead(BaseModel):
     role: RoleEnum
     predio_id: int | None
     unidade_ids: list[int] = Field(default_factory=list)
+    papeis_extra: list[RoleEnum] = Field(default_factory=list)
     is_active: bool
     consent_lgpd_accepted_at: datetime | None
     last_login_at: datetime | None
@@ -102,5 +139,6 @@ class UsuarioRead(BaseModel):
             unidades = obj.unidades
             data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
             data["unidade_ids"] = [u.id for u in unidades]
+            data["papeis_extra"] = [p.role for p in obj.papeis_extra]
             return data
         return obj

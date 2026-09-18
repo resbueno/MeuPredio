@@ -154,7 +154,7 @@ def gerar_convite(
     qualquer um. Reemitir desativa o convite anterior (um só ativo por vez -
     evita links antigos "esquecidos" continuarem funcionando)."""
     predio = _predio_ou_404(db, predio_id)
-    if current_user.role == RoleEnum.SINDICO and current_user.predio_id != predio.id:
+    if current_user.role != RoleEnum.ADMINISTRADOR and current_user.predio_id != predio.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você só pode gerar convite para o próprio prédio.",
@@ -196,7 +196,7 @@ def revogar_convite(
     current_user: Usuario = Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SINDICO)),
 ) -> None:
     predio = _predio_ou_404(db, predio_id)
-    if current_user.role == RoleEnum.SINDICO and current_user.predio_id != predio.id:
+    if current_user.role != RoleEnum.ADMINISTRADOR and current_user.predio_id != predio.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você só pode revogar o convite do próprio prédio.",
@@ -223,7 +223,7 @@ def revogar_convite(
 
 
 def _autorizar_gestor_do_predio(current_user: Usuario, predio: Predio) -> None:
-    if current_user.role == RoleEnum.SINDICO and current_user.predio_id != predio.id:
+    if current_user.role != RoleEnum.ADMINISTRADOR and current_user.predio_id != predio.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você só pode gerenciar o próprio prédio.",
