@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, require_role
@@ -33,6 +33,22 @@ def _predio_id_efetivo(current_user: Usuario, predio_id_informado: int | None) -
     return current_user.predio_id  # type: ignore[return-value]
 
 
+_GESTAO = (RoleEnum.ADMINISTRADOR, RoleEnum.SINDICO, RoleEnum.ZELADOR)
+
+
+def _restringir_por_unidade(query, current_user: Usuario):
+    """Uma despesa com `unidade_id` preenchido (multa/cobrança exclusiva,
+    ver DespesaLancamento.unidade_id) só é visível à gestão e a quem mora/é
+    dono daquela unidade - nunca aos demais condôminos. Despesas gerais
+    (`unidade_id is None`) continuam públicas a todo mundo do prédio."""
+    if current_user.role in _GESTAO:
+        return query
+    unidade_ids = [u.id for u in current_user.unidades]
+    return query.filter(
+        or_(DespesaLancamento.unidade_id.is_(None), DespesaLancamento.unidade_id.in_(unidade_ids))
+    )
+
+
 def _limites_periodo(ano: int, mes: int | None) -> tuple[date, date]:
     """`mes=None` (ou 0) significa "ano inteiro" - `mes` entre 1 e 12 filtra
     para aquele mes especifico."""
@@ -59,6 +75,7 @@ def listar_despesas_transparencia(
         DespesaLancamento.predio_id == predio_id_efetivo,
         DespesaLancamento.deleted_at.is_(None),
     )
+    query = _restringir_por_unidade(query, current_user)
     if ano is not None:
         inicio, fim_exclusivo = _limites_periodo(ano, mes)
         query = query.filter(
@@ -89,6 +106,7 @@ def obter_balancete(
         DespesaLancamento.data_vencimento >= inicio,
         DespesaLancamento.data_vencimento < fim_exclusivo,
     )
+    base = _restringir_por_unidade(base, current_user)
 
     totais_por_status = dict(
         base.with_entities(DespesaLancamento.status, func.sum(DespesaLancamento.valor))

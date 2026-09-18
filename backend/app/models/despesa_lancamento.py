@@ -15,6 +15,7 @@ from app.models.enums import StatusDespesaEnum
 if TYPE_CHECKING:
     from app.models.fornecedor import Fornecedor
     from app.models.rateio_despesa_item import RateioDespesaItem
+    from app.models.unidade import Unidade
 
 
 class DespesaLancamento(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
@@ -36,6 +37,14 @@ class DespesaLancamento(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
     )
     fornecedor_id: Mapped[int | None] = mapped_column(
         ForeignKey("fornecedores.id", ondelete="SET NULL"), nullable=True
+    )
+    # Nulo (padrão): despesa geral do condomínio, ratejada entre as unidades
+    # (`itens_rateio`). Preenchido: despesa EXCLUSIVA daquela unidade (ex.:
+    # multa gerada por um aviso direto, ver models/aviso_direto.py) - nunca
+    # pode ser rateada (ver guarda em POST /despesas/{id}/ratear) e só é
+    # visível, no Portal da Transparência, a quem mora/é dono dela.
+    unidade_id: Mapped[int | None] = mapped_column(
+        ForeignKey("unidades.id", ondelete="SET NULL"), nullable=True, index=True
     )
     descricao: Mapped[str] = mapped_column(String(255), nullable=False)
     categoria: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
@@ -64,6 +73,7 @@ class DespesaLancamento(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
     fornecedor: Mapped["Fornecedor | None"] = relationship(
         "Fornecedor", back_populates="despesas"
     )
+    unidade: Mapped["Unidade | None"] = relationship("Unidade")
     itens_rateio: Mapped[list["RateioDespesaItem"]] = relationship(
         "RateioDespesaItem", back_populates="despesa", order_by="RateioDespesaItem.unidade_id"
     )

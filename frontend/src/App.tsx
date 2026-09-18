@@ -12,6 +12,9 @@ import { VeiculosPage } from "./pages/veiculos/VeiculosPage";
 import { DespesasPage } from "./pages/despesas/DespesasPage";
 import { TransparenciaPage } from "./pages/transparencia/TransparenciaPage";
 import { TicketsPage } from "./pages/tickets/TicketsPage";
+import { AvisosPage } from "./pages/avisos/AvisosPage";
+import { AvisosDiretosPage } from "./pages/avisos/AvisosDiretosPage";
+import { OcorrenciasPage } from "./pages/ocorrencias/OcorrenciasPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -88,6 +91,30 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <TicketsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/avisos"
+              element={
+                <ProtectedRoute>
+                  <AvisosPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/avisos-diretos"
+              element={
+                <ProtectedRoute allowedRoles={["administrador", "sindico", "morador", "proprietario"]}>
+                  <AvisosDiretosPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ocorrencias"
+              element={
+                <ProtectedRoute>
+                  <OcorrenciasPage />
                 </ProtectedRoute>
               }
             />

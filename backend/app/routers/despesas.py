@@ -327,6 +327,11 @@ def ratear_despesa(
     """
     despesa = _despesa_ou_404(db, despesa_id, current_user)
     _exigir_pendente(despesa, "ratear")
+    if despesa.unidade_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Esta despesa é exclusiva de uma unidade e não pode ser rateada entre todas.",
+        )
 
     unidades = (
         db.query(Unidade)

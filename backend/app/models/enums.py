@@ -56,3 +56,29 @@ class StatusTicketEnum(str, enum.Enum):
     EM_ANDAMENTO = "em_andamento"
     RESOLVIDO = "resolvido"
     CANCELADO = "cancelado"
+
+
+class TipoAvisoMuralEnum(str, enum.Enum):
+    """Os dois blocos do mural (ver GET /avisos): 'condominio' só
+    síndico/administrador publica, 'anuncio' qualquer morador/proprietário."""
+
+    CONDOMINIO = "condominio"
+    ANUNCIO = "anuncio"
+
+
+class DestinatarioAvisoEnum(str, enum.Enum):
+    """Para quem, dentro da unidade, um aviso direto vale - uma unidade pode
+    ter morador(es) e proprietário(s) diferentes, então o emissor escolhe."""
+
+    MORADOR = "morador"
+    PROPRIETARIO = "proprietario"
+    AMBOS = "ambos"
+
+
+class TipoAvisoDiretoEnum(str, enum.Enum):
+    """'multa' é a única variante que gera uma despesa vinculada exclusiva
+    da unidade (ver DespesaLancamento.unidade_id e routers/avisos_diretos.py)."""
+
+    AVISO = "aviso"
+    ADVERTENCIA = "advertencia"
+    MULTA = "multa"

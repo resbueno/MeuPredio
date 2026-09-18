@@ -145,6 +145,7 @@ export interface RateioDespesaItem {
 export interface DespesaLancamento {
   id: number;
   predio_id: number;
+  unidade_id: number | null;
   fornecedor_id: number | null;
   descricao: string;
   categoria: string;
@@ -175,6 +176,7 @@ export interface DespesaCreateInput {
 
 export interface DespesaTransparencia {
   id: number;
+  unidade_id: number | null;
   descricao: string;
   categoria: string;
   valor: string;
@@ -253,4 +255,89 @@ export interface ExtracaoBoleto {
   linha_digitavel: string | null;
   descricao_sugerida: string | null;
   categoria_sugerida: string | null;
+}
+
+export type TipoAvisoMuralEnum = "condominio" | "anuncio";
+export type DestinatarioAvisoEnum = "morador" | "proprietario" | "ambos";
+export type TipoAvisoDiretoEnum = "aviso" | "advertencia" | "multa";
+
+export interface AvisoMural {
+  id: number;
+  predio_id: number;
+  tipo: TipoAvisoMuralEnum;
+  titulo: string;
+  descricao: string;
+  preco: string | null;
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AvisoMuralCreateInput {
+  tipo: TipoAvisoMuralEnum;
+  titulo: string;
+  descricao: string;
+  preco?: string | null;
+  predio_id?: number | null;
+}
+
+export interface AvisoMuralAtualizarInput {
+  titulo?: string;
+  descricao?: string;
+  preco?: string | null;
+}
+
+export interface AvisoDireto {
+  id: number;
+  predio_id: number;
+  unidade_id: number;
+  destinatario: DestinatarioAvisoEnum;
+  tipo: TipoAvisoDiretoEnum;
+  titulo: string;
+  mensagem: string;
+  valor: string | null;
+  despesa_lancamento_id: number | null;
+  lida_em: string | null;
+  resposta: string | null;
+  respondido_por: number | null;
+  respondido_em: string | null;
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AvisoDiretoCreateInput {
+  unidade_id: number;
+  destinatario: DestinatarioAvisoEnum;
+  tipo: TipoAvisoDiretoEnum;
+  titulo: string;
+  mensagem: string;
+  valor?: string | null;
+  data_vencimento?: string | null;
+  predio_id?: number | null;
+}
+
+export interface Ocorrencia {
+  id: number;
+  predio_id: number;
+  unidade_id: number | null;
+  titulo: string;
+  descricao: string;
+  editado_em: string | null;
+  editado_por: number | null;
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OcorrenciaCreateInput {
+  titulo: string;
+  descricao: string;
+  unidade_id?: number | null;
+  predio_id?: number | null;
+}
+
+export interface OcorrenciaAtualizarInput {
+  titulo?: string;
+  descricao?: string;
 }

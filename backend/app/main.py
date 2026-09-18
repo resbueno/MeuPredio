@@ -6,9 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.routers import (
     auth,
+    avisos_diretos,
+    avisos_mural,
     despesas,
     fornecedores,
     health,
+    ocorrencias,
     predios,
     tickets,
     transparencia,
@@ -47,3 +50,6 @@ app.include_router(fornecedores.router)
 app.include_router(despesas.router)
 app.include_router(transparencia.router)
 app.include_router(tickets.router)
+app.include_router(avisos_mural.router)
+app.include_router(avisos_diretos.router)
+app.include_router(ocorrencias.router)

@@ -52,6 +52,7 @@ class DespesaLancamentoRead(BaseModel):
 
     id: int
     predio_id: int
+    unidade_id: int | None
     fornecedor_id: int | None
     descricao: str
     categoria: str

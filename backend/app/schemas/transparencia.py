@@ -17,6 +17,7 @@ class DespesaTransparenciaRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    unidade_id: int | None
     descricao: str
     categoria: str
     valor: Decimal
