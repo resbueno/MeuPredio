@@ -19,8 +19,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/veiculos", label: "Veículos" },
   { to: "/despesas", label: "Contas", roles: ["administrador", "sindico"] },
   { to: "/transparencia", label: "Transparência" },
-  { to: "/avisos", label: "Avisos" },
-  { to: "/avisos-diretos", label: "Diretos", roles: ["administrador", "sindico", "morador", "proprietario"] },
+  { to: "/avisos", label: "Avisos Gerais" },
+  { to: "/avisos-diretos", label: "Avisos Diretos", roles: ["administrador", "sindico", "morador", "proprietario"] },
   { to: "/ocorrencias", label: "Ocorrências" },
   { to: "/tickets", label: "Chamados" },
 ];
