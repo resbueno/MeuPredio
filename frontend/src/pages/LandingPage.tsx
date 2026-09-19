@@ -159,6 +159,9 @@ export function LandingPage() {
             <a href="#como-funciona" className="hover:text-ink">
               Como funciona
             </a>
+            <a href="#contato" onClick={() => setMostrarFormularioContato(true)} className="hover:text-ink">
+              Contato
+            </a>
           </nav>
           <div className="flex items-center gap-2">
             <button
@@ -365,7 +368,7 @@ export function LandingPage() {
       </section>
 
       {/* CTA final */}
-      <section className="px-4 py-16 sm:px-6">
+      <section id="contato" className="scroll-mt-20 px-4 py-16 sm:px-6">
         <div className="mx-auto max-w-5xl rounded-3xl bg-ink px-6 py-14 text-center shadow-xl sm:px-12">
           <p className="text-xs font-semibold uppercase tracking-wider text-brand-300">
             Simplifique a gestão
@@ -464,6 +467,9 @@ export function LandingPage() {
             </a>
             <a href="#como-funciona" className="hover:text-ink">
               Como funciona
+            </a>
+            <a href="#contato" onClick={() => setMostrarFormularioContato(true)} className="hover:text-ink">
+              Contato
             </a>
           </nav>
           <p className="text-xs text-slate-400">Desenvolvido por Renato Bueno - RBBrDev</p>
