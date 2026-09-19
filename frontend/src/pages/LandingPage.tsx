@@ -155,9 +155,6 @@ export function LandingPage() {
             <a href="#como-funciona" className="hover:text-ink">
               Como funciona
             </a>
-            <a href="#footer" className="hover:text-ink">
-              Segurança
-            </a>
           </nav>
           <div className="flex items-center gap-2">
             <button
@@ -463,9 +460,6 @@ export function LandingPage() {
             </a>
             <a href="#como-funciona" className="hover:text-ink">
               Como funciona
-            </a>
-            <a href="#footer" className="hover:text-ink">
-              Segurança
             </a>
           </nav>
           <p className="text-xs text-slate-400">Desenvolvido por Renato Bueno - RBBrDev</p>
