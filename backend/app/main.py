@@ -14,10 +14,12 @@ from app.routers import (
     despesas_recorrentes,
     entregas,
     fornecedores,
+    funcionarios,
     health,
     notificacoes,
     ocorrencias,
     predios,
+    prestadores_servico,
     reservas,
     reunioes,
     tickets,
@@ -69,3 +71,5 @@ app.include_router(visitantes.router)
 app.include_router(areas_comuns.router)
 app.include_router(reservas.router)
 app.include_router(contato.router)
+app.include_router(funcionarios.router)
+app.include_router(prestadores_servico.router)

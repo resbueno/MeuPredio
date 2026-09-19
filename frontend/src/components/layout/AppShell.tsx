@@ -30,6 +30,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/entregas", label: "Entregas" },
   { to: "/visitantes", label: "Visitantes", roles: ["administrador", "sindico", "zelador"] },
   { to: "/reservas", label: "Reservas" },
+  { to: "/equipe", label: "Equipe e Serviços", roles: ["sindico", "zelador"] },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

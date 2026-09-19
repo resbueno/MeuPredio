@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from decimal import Decimal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import FileResponse
@@ -12,14 +11,12 @@ from app.core.crypto import decrypt_secret
 from app.core.dependencies import get_db, require_role, resolver_predio_id
 from app.core.groq_ocr import GroqIndisponivelError, extrair_dados_boleto
 from app.core.pdf import PdfInvalidoError, primeira_pagina_como_png
-from app.core.rateio import calcular_rateio
+from app.core.rateio_despesa import aplicar_rateio
 from app.core.storage import caminho_documento, salvar_documento
 from app.models.despesa_lancamento import DespesaLancamento
-from app.models.enums import CriterioRateioEnum, RoleEnum, StatusDespesaEnum
+from app.models.enums import RoleEnum, StatusDespesaEnum
 from app.models.fornecedor import Fornecedor
 from app.models.predio import Predio
-from app.models.rateio_despesa_item import RateioDespesaItem
-from app.models.unidade import Unidade
 from app.models.usuario import Usuario
 from app.schemas.despesa_lancamento import (
     DespesaLancamentoCreate,
@@ -327,60 +324,7 @@ def ratear_despesa(
     """
     despesa = _despesa_ou_404(db, despesa_id, current_user)
     _exigir_pendente(despesa, "ratear")
-    if despesa.unidade_id is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Esta despesa é exclusiva de uma unidade e não pode ser rateada entre todas.",
-        )
-
-    unidades = (
-        db.query(Unidade)
-        .filter(Unidade.predio_id == despesa.predio_id, Unidade.deleted_at.is_(None))
-        .order_by(Unidade.id)
-        .all()
-    )
-    if not unidades:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Nenhuma unidade ativa neste prédio para ratear.",
-        )
-
-    if payload.criterio == CriterioRateioEnum.FRACAO_IDEAL:
-        sem_fracao = [u.id for u in unidades if not u.fracao_ideal or u.fracao_ideal <= 0]
-        if sem_fracao:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=(
-                    "Todas as unidades ativas precisam ter fracao_ideal definida (>0) "
-                    f"para ratear por fração ideal. Unidade(s) sem fracao_ideal: {sem_fracao}."
-                ),
-            )
-        pesos = [(u.id, u.fracao_ideal) for u in unidades]
-    else:
-        pesos = [(u.id, Decimal(1)) for u in unidades]
-
-    valores_por_unidade = calcular_rateio(despesa.valor, pesos)
-
-    db.query(RateioDespesaItem).filter(
-        RateioDespesaItem.despesa_lancamento_id == despesa.id
-    ).delete(synchronize_session=False)
-
-    itens_novos = []
-    for unidade_id, valor_unidade in valores_por_unidade.items():
-        item = RateioDespesaItem(
-            predio_id=despesa.predio_id,
-            despesa_lancamento_id=despesa.id,
-            unidade_id=unidade_id,
-            valor=valor_unidade,
-            criterio=payload.criterio,
-            created_by=current_user.id,
-        )
-        db.add(item)
-        itens_novos.append(item)
-
-    despesa.rateado_em = datetime.now(timezone.utc)
-    db.add(despesa)
-    db.flush()
+    itens_novos = aplicar_rateio(db, despesa, payload.criterio, current_user.id)
 
     registrar_log(
         db,

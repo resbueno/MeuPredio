@@ -21,6 +21,7 @@ import { ReunioesPage } from "./pages/reunioes/ReunioesPage";
 import { EntregasPage } from "./pages/entregas/EntregasPage";
 import { VisitantesPage } from "./pages/visitantes/VisitantesPage";
 import { ReservasPage } from "./pages/reservas/ReservasPage";
+import { EquipePage } from "./pages/equipe/EquipePage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -155,6 +156,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <ReservasPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/equipe"
+              element={
+                <ProtectedRoute allowedRoles={["sindico", "zelador"]}>
+                  <EquipePage />
                 </ProtectedRoute>
               }
             />

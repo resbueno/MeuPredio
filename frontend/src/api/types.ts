@@ -611,3 +611,63 @@ export interface ContatoLeadCreateInput {
   telefone?: string | null;
   mensagem?: string | null;
 }
+
+export interface Funcionario {
+  id: number;
+  predio_id: number;
+  nome_completo: string;
+  cargo: string;
+  cpf: string | null;
+  telefone: string | null;
+  email: string | null;
+  data_admissao: string | null;
+  salario: string | null;
+  ativo: boolean;
+  observacoes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FuncionarioInput {
+  nome_completo: string;
+  cargo: string;
+  cpf?: string | null;
+  telefone?: string | null;
+  email?: string | null;
+  data_admissao?: string | null;
+  salario?: string | null;
+  observacoes?: string | null;
+  ativo?: boolean;
+}
+
+export interface PrestadorServico {
+  id: number;
+  predio_id: number;
+  nome: string;
+  tipo_servico: string;
+  razao_social: string | null;
+  cnpj: string | null;
+  telefone: string | null;
+  email: string | null;
+  custo_mensal: string;
+  incluir_no_rateio: boolean;
+  criterio_rateio: CriterioRateioEnum;
+  ativo: boolean;
+  observacoes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PrestadorServicoInput {
+  nome: string;
+  tipo_servico: string;
+  razao_social?: string | null;
+  cnpj?: string | null;
+  telefone?: string | null;
+  email?: string | null;
+  custo_mensal: string;
+  incluir_no_rateio: boolean;
+  criterio_rateio: CriterioRateioEnum;
+  observacoes?: string | null;
+  ativo?: boolean;
+}
