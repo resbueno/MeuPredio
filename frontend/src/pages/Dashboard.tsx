@@ -6,8 +6,11 @@ import { listAvisosMural } from "../api/avisosMural";
 import { listAvisosDiretos } from "../api/avisosDiretos";
 import { aceitarConsentimentoLgpd, revogarConsentimentoLgpd } from "../api/usuarios";
 import { listUnidades } from "../api/unidades";
-import { getPreviaUnidade } from "../api/transparencia";
+import { getBalanceteSerie, getPreviaUnidade } from "../api/transparencia";
 import { listReunioes } from "../api/reunioes";
+import { listUsuarios } from "../api/usuarios";
+import { listTickets } from "../api/tickets";
+import { listEntregas } from "../api/entregas";
 import type { TipoReuniaoEnum } from "../api/types";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -53,6 +56,7 @@ function formatarValor(valor: string): string {
 export function Dashboard() {
   const { user, refreshUser } = useAuth();
   const souAdministrador = user?.role === "administrador";
+  const souSindico = temPapel(user, "sindico");
   const recebeAvisoDireto = temPapel(user, "morador", "proprietario");
 
   const aceitarConsentimentoMutation = useMutation({
@@ -81,6 +85,53 @@ export function Dashboard() {
     queryFn: () => listReunioes({ status: "convocada" }),
     enabled: !souAdministrador,
   });
+
+  const { data: usuariosPredio } = useQuery({
+    queryKey: ["usuarios", "visao-geral"],
+    queryFn: listUsuarios,
+    enabled: souSindico,
+  });
+
+  const { data: ticketsPredio } = useQuery({
+    queryKey: ["tickets", "visao-geral"],
+    queryFn: () => listTickets(),
+    enabled: souSindico,
+  });
+
+  const { data: entregasPendentes } = useQuery({
+    queryKey: ["entregas", "visao-geral"],
+    queryFn: () => listEntregas({ apenasPendentes: true }),
+    enabled: souSindico,
+  });
+
+  const { data: serieMensal } = useQuery({
+    queryKey: ["transparencia", "serie", "visao-geral"],
+    queryFn: () => getBalanceteSerie({ meses: 6 }),
+    enabled: souSindico,
+  });
+
+  const totalMoradores =
+    usuariosPredio?.filter(
+      (u) =>
+        u.role === "morador" ||
+        u.role === "proprietario" ||
+        u.papeis_extra.includes("morador") ||
+        u.papeis_extra.includes("proprietario")
+    ).length ?? 0;
+
+  const novosAcessosHoje =
+    usuariosPredio?.filter((u) => {
+      if (!u.last_login_at) return false;
+      return new Date(u.last_login_at).toDateString() === new Date().toDateString();
+    }).length ?? 0;
+
+  const manutencoesEmAndamento =
+    ticketsPredio?.filter(
+      (t) => t.categoria === "manutencao" && (t.status === "aberto" || t.status === "em_andamento")
+    ).length ?? 0;
+
+  const valoresSerie = (serieMensal ?? []).map((m) => Number(m.total_geral));
+  const maxSerie = Math.max(1, ...valoresSerie);
 
   const hoje = new Date();
   const anoAtual = hoje.getFullYear();
@@ -141,15 +192,74 @@ export function Dashboard() {
         </p>
       )}
 
-      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <p className="text-sm text-slate-500">Unidades e veículos</p>
-          <p className="mt-1 text-sm text-slate-700">
-            Use o menu abaixo para navegar entre unidades, veículos e (se você for gestor)
-            usuários.
-          </p>
+      {souSindico ? (
+        <div className="mt-6 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <p className="mb-3 text-sm font-semibold text-slate-700">Visão geral do condomínio</p>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-xl bg-slate-50 p-2.5 text-center sm:text-left">
+              <p className="text-[11px] text-slate-500">Moradores</p>
+              <p className="text-lg font-bold text-ink">{totalMoradores}</p>
+              <p className="text-[10px] text-emerald-600">Vinculados</p>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-2.5 text-center sm:text-left">
+              <p className="text-[11px] text-slate-500">Manutenções</p>
+              <p className="text-lg font-bold text-ink">{String(manutencoesEmAndamento).padStart(2, "0")}</p>
+              <p className="text-[10px] text-amber-600">Em andamento</p>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-2.5 text-center sm:text-left">
+              <p className="text-[11px] text-slate-500">Entregas</p>
+              <p className="text-lg font-bold text-ink">{entregasPendentes?.length ?? 0}</p>
+              <p className="text-[10px] text-brand-600">Aguardando retirada</p>
+            </div>
+          </div>
+
+          {valoresSerie.length > 0 && (
+            <div className="mt-3 rounded-xl bg-slate-50 p-3">
+              <p className="text-[11px] font-medium text-slate-500">Atividade financeira (6 meses)</p>
+              <div className="mt-2 flex h-14 items-end gap-1.5">
+                {valoresSerie.map((valor, indice) => (
+                  <div
+                    key={indice}
+                    className={`w-full rounded-t-sm ${
+                      indice === valoresSerie.length - 1 ? "bg-brand-600" : "bg-brand-200"
+                    }`}
+                    style={{ height: `${Math.max(8, (valor / maxSerie) * 100)}%` }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="rounded-xl bg-slate-50 p-3">
+              <p className="text-[11px] font-medium text-slate-500">Avisos recentes</p>
+              <ul className="mt-1.5 space-y-1 text-[11px] text-slate-600">
+                {avisosCondominio?.slice(0, 2).map((aviso) => <li key={aviso.id}>• {aviso.titulo}</li>)}
+                {(!avisosCondominio || avisosCondominio.length === 0) && (
+                  <li className="text-slate-400">Nenhum aviso recente.</li>
+                )}
+              </ul>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-3">
+              <p className="text-[11px] font-medium text-slate-500">Moradores</p>
+              <ul className="mt-1.5 space-y-1 text-[11px] text-slate-600">
+                <li>• {novosAcessosHoje} novo(s) acesso(s) hoje</li>
+              </ul>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl bg-white p-4 shadow-sm">
+            <p className="text-sm text-slate-500">Unidades e veículos</p>
+            <p className="mt-1 text-sm text-slate-700">
+              Use o menu abaixo para navegar entre unidades, veículos e (se você for gestor)
+              usuários.
+            </p>
+          </div>
+        </div>
+      )}
 
       {!souAdministrador && (
         <div className="mt-6">
