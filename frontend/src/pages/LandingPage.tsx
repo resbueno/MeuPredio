@@ -6,17 +6,35 @@ import fotoDestaque from "../assets/landing-destaque.jpg";
 
 const RECURSOS = [
   {
+    icone: <path d="M18 20V10M12 20V4M6 20v-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />,
+    titulo: "Portal da Transparência",
+    descricao: "Balancete, gráficos por categoria e prévia da conta de cada unidade, sempre à vista de todos.",
+  },
+  {
     icone: (
       <path
-        d="M3 3v18h18M8 17V11m5 6V7m5 10v-4"
+        d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
     ),
-    titulo: "Dashboard Inteligente",
-    descricao: "Gráficos, indicadores e informações do prédio atualizadas em uma visão simples e objetiva.",
+    titulo: "Boletos e Contas Recorrentes",
+    descricao: "Leitura automática de boletos por IA, rateio entre unidades e contas mensais geradas sozinhas.",
+  },
+  {
+    icone: (
+      <path
+        d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+    titulo: "Avisos e Ocorrências",
+    descricao: "Avisos gerais, avisos diretos por unidade e livro de ocorrências, tudo em um só lugar.",
   },
   {
     icone: (
@@ -28,8 +46,47 @@ const RECURSOS = [
         strokeLinejoin="round"
       />
     ),
-    titulo: "Avisos e Comunicação",
-    descricao: "Compartilhe notificações e avisos importantes de forma rápida, direta e centralizada.",
+    titulo: "Sino de Notificações",
+    descricao: "Um alerta só, para avisos, ocorrências, reuniões e entregas - sem precisar caçar informação.",
+  },
+  {
+    icone: (
+      <path
+        d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+    titulo: "Reuniões Digitais",
+    descricao: "Convocação, pauta, confirmação de presença por unidade e ata registrada no sistema.",
+  },
+  {
+    icone: (
+      <path
+        d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 13a3 3 0 100-6 3 3 0 000 6z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+    titulo: "Reserva de Espaços",
+    descricao: "Síndico libera a agenda do salão e áreas comuns; moradores reservam a data direto pelo sistema.",
+  },
+  {
+    icone: (
+      <path
+        d="M20.5 7.3L12 12l-8.5-4.7M12 12v10M3.3 7.3L12 2l8.7 5.3v9.4L12 22l-8.7-5.3V7.3z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+    titulo: "Portaria Digital",
+    descricao: "Registro de visitantes (com veículo) e de encomendas recebidas, visível para zelador e síndico.",
   },
   {
     icone: (
@@ -41,34 +98,8 @@ const RECURSOS = [
         strokeLinejoin="round"
       />
     ),
-    titulo: "Gestão de Moradores",
-    descricao: "Perfis e dados de residentes organizados para uma gestão acessível e segura.",
-  },
-  {
-    icone: (
-      <path
-        d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.77z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    ),
-    titulo: "Serviços e Manutenção",
-    descricao: "Acompanhe tarefas, prazos e checklists para manter cada atividade em dia.",
-  },
-  {
-    icone: (
-      <path
-        d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    ),
-    titulo: "Documentos Digitais",
-    descricao: "Arquivos importantes sempre disponíveis, organizados e protegidos em um único ambiente.",
+    titulo: "Moradores e Unidades",
+    descricao: "Um login pode acumular papéis, cadastro de veículos e vaga, tudo vinculado à unidade certa.",
   },
 ];
 
@@ -139,7 +170,8 @@ export function LandingPage() {
               A gestão do seu prédio, mais simples e inteligente.
             </h1>
             <p className="mt-4 max-w-md text-sm leading-relaxed text-slate-500 sm:text-base">
-              O Meu Prédio centraliza comunicação, moradores, serviços e documentos em um só lugar
+              Portal da transparência, boletos com leitura por IA, avisos, reuniões digitais,
+              reserva de espaços e portaria com controle de visitantes - tudo em um só sistema,
               para uma rotina mais organizada, segura e eficiente.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
@@ -280,9 +312,9 @@ export function LandingPage() {
                 <p className="text-[10px] text-amber-600">Em andamento</p>
               </div>
               <div className="rounded-xl bg-slate-50 p-2.5">
-                <p className="text-[11px] text-slate-500">Documentos</p>
-                <p className="text-lg font-bold text-ink">24</p>
-                <p className="text-[10px] text-brand-600">Organizados</p>
+                <p className="text-[11px] text-slate-500">Reservas</p>
+                <p className="text-lg font-bold text-ink">05</p>
+                <p className="text-[10px] text-brand-600">Este mês</p>
               </div>
             </div>
 
@@ -308,9 +340,10 @@ export function LandingPage() {
                 </ul>
               </div>
               <div className="rounded-xl bg-slate-50 p-3">
-                <p className="text-[11px] font-medium text-slate-500">Moradores</p>
+                <p className="text-[11px] font-medium text-slate-500">Portaria</p>
                 <ul className="mt-1.5 space-y-1 text-[11px] text-slate-600">
-                  <li>• Novos acessos hoje</li>
+                  <li>• 2 visitantes hoje</li>
+                  <li>• 1 encomenda recebida</li>
                 </ul>
               </div>
             </div>
