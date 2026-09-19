@@ -99,6 +99,21 @@ class StatusReuniaoEnum(str, enum.Enum):
     CANCELADA = "cancelada"
 
 
+class TipoDocumentoVisitanteEnum(str, enum.Enum):
+    """Documento apresentado na portaria - 'nao_informado' existe porque nem
+    toda portaria consegue (ou quer) exigir o documento no ato do registro."""
+
+    RG = "rg"
+    CPF = "cpf"
+    CIN = "cin"
+    NAO_INFORMADO = "nao_informado"
+
+
+class StatusReservaEnum(str, enum.Enum):
+    CONFIRMADA = "confirmada"
+    CANCELADA = "cancelada"
+
+
 class TipoNotificacaoEnum(str, enum.Enum):
     """Origem de uma notificação no sino de alertas - cada valor mapeia a um
     evento gerado por outro módulo (ver app/core/notificacoes.py)."""

@@ -19,6 +19,8 @@ import { AvisosDiretosPage } from "./pages/avisos/AvisosDiretosPage";
 import { OcorrenciasPage } from "./pages/ocorrencias/OcorrenciasPage";
 import { ReunioesPage } from "./pages/reunioes/ReunioesPage";
 import { EntregasPage } from "./pages/entregas/EntregasPage";
+import { VisitantesPage } from "./pages/visitantes/VisitantesPage";
+import { ReservasPage } from "./pages/reservas/ReservasPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -137,6 +139,22 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <EntregasPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/visitantes"
+              element={
+                <ProtectedRoute allowedRoles={["administrador", "sindico", "zelador"]}>
+                  <VisitantesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reservas"
+              element={
+                <ProtectedRoute>
+                  <ReservasPage />
                 </ProtectedRoute>
               }
             />

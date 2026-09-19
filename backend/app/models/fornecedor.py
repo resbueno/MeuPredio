@@ -33,6 +33,13 @@ class Fornecedor(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
     )
     nome: Mapped[str] = mapped_column(String(255), nullable=False)
     documento: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # Identificação societária completa da empresa por trás da conta - além
+    # do `documento` genérico (CPF ou CNPJ) já existente, guardada separada
+    # porque um boleto/conta recorrente costuma trazer razão social e nome
+    # fantasia como campos distintos, úteis para conferência.
+    cnpj: Mapped[str | None] = mapped_column(String(18), nullable=True)
+    razao_social: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    nome_fantasia: Mapped[str | None] = mapped_column(String(255), nullable=True)
     categoria: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     telefone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)

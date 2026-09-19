@@ -5,22 +5,26 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.routers import (
+    areas_comuns,
     auth,
     avisos_diretos,
     avisos_mural,
     despesas,
+    despesas_recorrentes,
     entregas,
     fornecedores,
     health,
     notificacoes,
     ocorrencias,
     predios,
+    reservas,
     reunioes,
     tickets,
     transparencia,
     unidades,
     usuarios,
     veiculos,
+    visitantes,
 )
 
 settings = get_settings()
@@ -51,6 +55,7 @@ app.include_router(unidades.router)
 app.include_router(veiculos.router)
 app.include_router(fornecedores.router)
 app.include_router(despesas.router)
+app.include_router(despesas_recorrentes.router)
 app.include_router(transparencia.router)
 app.include_router(tickets.router)
 app.include_router(avisos_mural.router)
@@ -59,3 +64,6 @@ app.include_router(ocorrencias.router)
 app.include_router(reunioes.router)
 app.include_router(entregas.router)
 app.include_router(notificacoes.router)
+app.include_router(visitantes.router)
+app.include_router(areas_comuns.router)
+app.include_router(reservas.router)

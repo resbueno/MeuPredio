@@ -455,3 +455,135 @@ export interface EntregaCreateInput {
   localizacao: string;
   predio_id?: number | null;
 }
+
+export type TipoDocumentoVisitanteEnum = "rg" | "cpf" | "cin" | "nao_informado";
+
+export interface Visitante {
+  id: number;
+  predio_id: number;
+  unidade_id: number;
+  nome_completo: string;
+  tipo_documento: TipoDocumentoVisitanteEnum;
+  numero_documento: string | null;
+  created_by: number | null;
+  created_at: string;
+}
+
+export interface VisitanteCreateInput {
+  unidade_id: number;
+  nome_completo: string;
+  tipo_documento: TipoDocumentoVisitanteEnum;
+  numero_documento?: string | null;
+  predio_id?: number | null;
+}
+
+export interface AreaComum {
+  id: number;
+  predio_id: number;
+  nome: string;
+  descricao: string | null;
+  capacidade: number | null;
+  ativo: boolean;
+  agenda_liberada_ate: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AreaComumCreateInput {
+  nome: string;
+  descricao?: string | null;
+  capacidade?: number | null;
+  predio_id?: number | null;
+}
+
+export interface AreaComumAtualizarInput {
+  nome?: string;
+  descricao?: string | null;
+  capacidade?: number | null;
+  ativo?: boolean;
+}
+
+export type StatusReservaEnum = "confirmada" | "cancelada";
+
+export interface Reserva {
+  id: number;
+  predio_id: number;
+  area_comum_id: number;
+  unidade_id: number;
+  data: string;
+  status: StatusReservaEnum;
+  observacoes: string | null;
+  cancelada_em: string | null;
+  cancelada_por: number | null;
+  created_by: number | null;
+  created_at: string;
+}
+
+export interface ReservaCreateInput {
+  area_comum_id: number;
+  data: string;
+  observacoes?: string | null;
+  unidade_id?: number | null;
+  predio_id?: number | null;
+}
+
+export interface Fornecedor {
+  id: number;
+  predio_id: number;
+  nome: string;
+  documento: string | null;
+  cnpj: string | null;
+  razao_social: string | null;
+  nome_fantasia: string | null;
+  categoria: string;
+  telefone: string | null;
+  email: string | null;
+  observacoes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface FornecedorCreateInput {
+  nome: string;
+  documento?: string | null;
+  cnpj?: string | null;
+  razao_social?: string | null;
+  nome_fantasia?: string | null;
+  categoria: string;
+  telefone?: string | null;
+  email?: string | null;
+  observacoes?: string | null;
+  predio_id?: number | null;
+}
+
+export interface DespesaRecorrente {
+  id: number;
+  predio_id: number;
+  fornecedor_id: number | null;
+  unidade_id: number | null;
+  descricao: string;
+  categoria: string;
+  valor: string;
+  dia_vencimento: number;
+  ativo: boolean;
+  data_inicio: string;
+  data_fim: string | null;
+  ultima_geracao: string | null;
+  observacoes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DespesaRecorrenteCreateInput {
+  fornecedor_id?: number | null;
+  unidade_id?: number | null;
+  descricao: string;
+  categoria: string;
+  valor: string;
+  dia_vencimento: number;
+  data_inicio: string;
+  data_fim?: string | null;
+  observacoes?: string | null;
+  predio_id?: number | null;
+}

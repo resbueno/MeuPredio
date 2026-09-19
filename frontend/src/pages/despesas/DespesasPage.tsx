@@ -23,6 +23,14 @@ import {
   obterIntegracaoOcr,
   removerIntegracaoOcr,
 } from "../../api/predios";
+import {
+  createDespesaRecorrente,
+  deleteDespesaRecorrente,
+  gerarPendentes,
+  listDespesasRecorrentes,
+  updateDespesaRecorrente,
+} from "../../api/despesasRecorrentes";
+import { createFornecedor } from "../../api/fornecedores";
 import type {
   CriterioRateioEnum,
   DespesaCreateInput,
@@ -169,6 +177,286 @@ function IntegracaoOcrPanel({ predioId }: { predioId: number }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+const recorrenteSchema = z.object({
+  descricao: z.string().min(2, "Informe a descrição."),
+  categoria: z.string().min(2, "Informe a categoria."),
+  valor: z
+    .string()
+    .min(1, "Informe o valor.")
+    .refine((v) => Number(v.replace(",", ".")) > 0, "Informe um valor maior que zero."),
+  dia_vencimento: z
+    .string()
+    .min(1, "Informe o dia do vencimento.")
+    .refine((v) => Number(v) >= 1 && Number(v) <= 28, "O dia deve ser entre 1 e 28."),
+  data_inicio: z.string().min(1, "Informe a data de início."),
+  data_fim: z.string().optional(),
+  nome_fantasia: z.string().optional(),
+  razao_social: z.string().optional(),
+  cnpj: z.string().optional(),
+});
+
+type RecorrenteFormValues = z.infer<typeof recorrenteSchema>;
+
+const RECORRENTE_VAZIO: RecorrenteFormValues = {
+  descricao: "",
+  categoria: "",
+  valor: "",
+  dia_vencimento: "",
+  data_inicio: new Date().toISOString().slice(0, 10),
+  data_fim: "",
+  nome_fantasia: "",
+  razao_social: "",
+  cnpj: "",
+};
+
+function ContasRecorrentesPanel({
+  predioIdAdmin,
+  souAdministrador,
+}: {
+  predioIdAdmin: number | null;
+  souAdministrador: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const bloqueadoSemPredio = souAdministrador && !predioIdAdmin;
+
+  const { data: recorrentes, isLoading } = useQuery({
+    queryKey: ["despesas-recorrentes", souAdministrador ? predioIdAdmin : "proprio"],
+    queryFn: () => listDespesasRecorrentes({ predioId: souAdministrador ? predioIdAdmin : undefined }),
+    enabled: !bloqueadoSemPredio,
+  });
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["despesas-recorrentes"] });
+    queryClient.invalidateQueries({ queryKey: ["despesas"] });
+  };
+
+  // Gera automaticamente, ao abrir a tela, qualquer competência já vencida
+  // das recorrências ativas - "facilitar o cadastro dos pagamentos" sem
+  // precisar de um botão dedicado (idempotente, seguro chamar sempre).
+  useEffect(() => {
+    if (bloqueadoSemPredio) return;
+    gerarPendentes(souAdministrador ? predioIdAdmin : undefined).then((gerados) => {
+      if (gerados.length > 0) invalidate();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [souAdministrador, predioIdAdmin, bloqueadoSemPredio]);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<RecorrenteFormValues>({
+    resolver: zodResolver(recorrenteSchema),
+    defaultValues: RECORRENTE_VAZIO,
+  });
+
+  const criarMutation = useMutation({
+    mutationFn: async (values: RecorrenteFormValues) => {
+      let fornecedorId: number | undefined;
+      if (values.nome_fantasia || values.razao_social || values.cnpj) {
+        const fornecedor = await createFornecedor({
+          nome: values.nome_fantasia || values.razao_social || values.descricao,
+          nome_fantasia: values.nome_fantasia || undefined,
+          razao_social: values.razao_social || undefined,
+          cnpj: values.cnpj || undefined,
+          categoria: values.categoria,
+          predio_id: souAdministrador ? predioIdAdmin : undefined,
+        });
+        fornecedorId = fornecedor.id;
+      }
+      return createDespesaRecorrente({
+        descricao: values.descricao,
+        categoria: values.categoria,
+        valor: values.valor.replace(",", "."),
+        dia_vencimento: Number(values.dia_vencimento),
+        data_inicio: values.data_inicio,
+        data_fim: values.data_fim || undefined,
+        fornecedor_id: fornecedorId,
+        predio_id: souAdministrador ? predioIdAdmin : undefined,
+      });
+    },
+    onSuccess: () => {
+      invalidate();
+      reset(RECORRENTE_VAZIO);
+    },
+  });
+
+  const toggleAtivoMutation = useMutation({
+    mutationFn: ({ id, ativo }: { id: number; ativo: boolean }) => updateDespesaRecorrente(id, { ativo }),
+    onSuccess: invalidate,
+  });
+
+  const removerMutation = useMutation({ mutationFn: deleteDespesaRecorrente, onSuccess: invalidate });
+
+  function formatarValor(valor: string): string {
+    const numero = Number(valor);
+    return Number.isFinite(numero)
+      ? numero.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+      : valor;
+  }
+
+  return (
+    <div className="mb-6 space-y-3 rounded-2xl bg-white p-4 shadow-sm">
+      <h2 className="text-sm font-semibold text-slate-700">Contas recorrentes</h2>
+      <p className="text-xs text-slate-500">
+        Cadastre uma conta que se repete todo mês (água, luz, contrato...) - o lançamento do mês é
+        gerado automaticamente quando esta tela é aberta, sem precisar recadastrar toda vez.
+      </p>
+
+      <form onSubmit={handleSubmit((v) => criarMutation.mutate(v))} className="space-y-3" noValidate>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600">Descrição</label>
+          <input
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            {...register("descricao")}
+          />
+          {errors.descricao && <p className="mt-1 text-xs text-red-600">{errors.descricao.message}</p>}
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Categoria</label>
+            <input
+              list="categorias-despesa"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              {...register("categoria")}
+            />
+            {errors.categoria && <p className="mt-1 text-xs text-red-600">{errors.categoria.message}</p>}
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Valor (R$)</label>
+            <input
+              inputMode="decimal"
+              placeholder="0,00"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              {...register("valor")}
+            />
+            {errors.valor && <p className="mt-1 text-xs text-red-600">{errors.valor.message}</p>}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Dia do vencimento</label>
+            <input
+              inputMode="numeric"
+              placeholder="Ex.: 10"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              {...register("dia_vencimento")}
+            />
+            {errors.dia_vencimento && (
+              <p className="mt-1 text-xs text-red-600">{errors.dia_vencimento.message}</p>
+            )}
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Início</label>
+            <input
+              type="date"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              {...register("data_inicio")}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Fim (opcional)</label>
+            <input
+              type="date"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              {...register("data_fim")}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-slate-50 p-3">
+          <p className="mb-2 text-xs font-medium text-slate-600">Empresa da conta (opcional)</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <input
+              placeholder="Nome fantasia"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              {...register("nome_fantasia")}
+            />
+            <input
+              placeholder="Razão social"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              {...register("razao_social")}
+            />
+            <input
+              placeholder="CNPJ"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              {...register("cnpj")}
+            />
+          </div>
+        </div>
+
+        {criarMutation.isError && (
+          <p className="text-sm text-red-600">Não foi possível salvar. Verifique os dados.</p>
+        )}
+        {bloqueadoSemPredio && (
+          <p className="text-sm text-amber-600">Informe o ID do prédio acima para continuar.</p>
+        )}
+
+        <button
+          type="submit"
+          disabled={isSubmitting || bloqueadoSemPredio}
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+        >
+          Cadastrar conta recorrente
+        </button>
+      </form>
+
+      {isLoading && <p className="text-sm text-slate-500">Carregando...</p>}
+
+      <ul className="space-y-2">
+        {recorrentes?.map((recorrente) => (
+          <li key={recorrente.id} className="rounded-xl bg-slate-50 p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium text-slate-800">{recorrente.descricao}</p>
+                <p className="text-xs text-slate-500">
+                  {recorrente.categoria} - vence todo dia {recorrente.dia_vencimento}
+                </p>
+              </div>
+              <span className="shrink-0 text-sm font-semibold text-slate-700">
+                {formatarValor(recorrente.valor)}
+              </span>
+            </div>
+            <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2">
+              <span className="text-xs text-slate-400">
+                {recorrente.ultima_geracao
+                  ? `Último lançamento gerado: ${new Date(`${recorrente.ultima_geracao}T00:00:00`).toLocaleDateString("pt-BR")}`
+                  : "Nenhum lançamento gerado ainda"}
+              </span>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    toggleAtivoMutation.mutate({ id: recorrente.id, ativo: !recorrente.ativo })
+                  }
+                  className="text-xs font-medium text-brand-600"
+                >
+                  {recorrente.ativo ? "Pausar" : "Reativar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removerMutation.mutate(recorrente.id)}
+                  className="text-xs font-medium text-red-600"
+                >
+                  Remover
+                </button>
+              </div>
+            </div>
+          </li>
+        ))}
+        {recorrentes?.length === 0 && (
+          <li className="rounded-xl bg-slate-50 p-3 text-center text-sm text-slate-500">
+            Nenhuma conta recorrente cadastrada.
+          </li>
+        )}
+      </ul>
     </div>
   );
 }
@@ -346,6 +634,8 @@ export function DespesasPage() {
       )}
 
       {predioIdEfetivo != null && <IntegracaoOcrPanel predioId={predioIdEfetivo} />}
+
+      <ContasRecorrentesPanel predioIdAdmin={predioIdAdmin} souAdministrador={souAdministrador} />
 
       <div className="mb-6 space-y-3 rounded-2xl bg-white p-4 shadow-sm">
         <h2 className="text-sm font-semibold text-slate-700">

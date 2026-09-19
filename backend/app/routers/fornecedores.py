@@ -67,6 +67,9 @@ def criar_fornecedor(
         predio_id=predio_id,
         nome=payload.nome,
         documento=payload.documento,
+        cnpj=payload.cnpj,
+        razao_social=payload.razao_social,
+        nome_fantasia=payload.nome_fantasia,
         categoria=payload.categoria,
         telefone=payload.telefone,
         email=payload.email,
@@ -141,7 +144,17 @@ def atualizar_fornecedor(
 
     dados_antes = model_to_audit_dict(fornecedor)
 
-    for campo in ("nome", "documento", "categoria", "telefone", "email", "observacoes"):
+    for campo in (
+        "nome",
+        "documento",
+        "cnpj",
+        "razao_social",
+        "nome_fantasia",
+        "categoria",
+        "telefone",
+        "email",
+        "observacoes",
+    ):
         if campo in campos_enviados:
             setattr(fornecedor, campo, campos_enviados[campo])
 

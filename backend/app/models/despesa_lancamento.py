@@ -38,6 +38,12 @@ class DespesaLancamento(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
     fornecedor_id: Mapped[int | None] = mapped_column(
         ForeignKey("fornecedores.id", ondelete="SET NULL"), nullable=True
     )
+    # Preenchido só quando este lançamento foi gerado automaticamente a
+    # partir de uma DespesaRecorrente (ver app/core/despesas_recorrentes.py)
+    # - rastreabilidade, nunca usado para bloquear edição/exclusão manual.
+    despesa_recorrente_id: Mapped[int | None] = mapped_column(
+        ForeignKey("despesas_recorrentes.id", ondelete="SET NULL"), nullable=True
+    )
     # Nulo (padrão): despesa geral do condomínio, ratejada entre as unidades
     # (`itens_rateio`). Preenchido: despesa EXCLUSIVA daquela unidade (ex.:
     # multa gerada por um aviso direto, ver models/aviso_direto.py) - nunca
