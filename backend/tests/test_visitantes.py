@@ -23,6 +23,94 @@ def test_zelador_registra_visitante(client, db_session):
     assert resposta.json()["nome_completo"] == "Fulano de Tal"
 
 
+def test_zelador_registra_visitante_com_veiculo(client, db_session):
+    predio = make_predio(db_session)
+    unidade = make_unidade(db_session, predio)
+    zelador = make_user(db_session, email="zelador.vi6@test.local", role=RoleEnum.ZELADOR, predio=predio)
+
+    resposta = client.post(
+        "/visitantes",
+        json={
+            "unidade_id": unidade.id,
+            "nome_completo": "Fulano de Tal",
+            "tipo_documento": "nao_informado",
+            "veiculo_placa": "ABC1D23",
+            "veiculo_modelo": "Onix",
+            "veiculo_cor": "Prata",
+        },
+        headers=auth_header(zelador),
+    )
+    assert resposta.status_code == 201
+    corpo = resposta.json()
+    assert corpo["veiculo_placa"] == "ABC1D23"
+    assert corpo["veiculo_modelo"] == "Onix"
+    assert corpo["veiculo_cor"] == "Prata"
+
+
+def test_registrar_lista_de_visitantes_de_uma_vez(client, db_session):
+    predio = make_predio(db_session)
+    unidade = make_unidade(db_session, predio)
+    zelador = make_user(db_session, email="zelador.vi7@test.local", role=RoleEnum.ZELADOR, predio=predio)
+
+    resposta = client.post(
+        "/visitantes/lote",
+        json={
+            "unidade_id": unidade.id,
+            "visitantes": [
+                {"nome_completo": "Convidado 1", "tipo_documento": "nao_informado"},
+                {
+                    "nome_completo": "Convidado 2",
+                    "tipo_documento": "rg",
+                    "numero_documento": "1.234.567",
+                    "veiculo_placa": "XYZ9A87",
+                },
+            ],
+        },
+        headers=auth_header(zelador),
+    )
+    assert resposta.status_code == 201
+    corpo = resposta.json()
+    assert len(corpo) == 2
+    assert corpo[0]["nome_completo"] == "Convidado 1"
+    assert corpo[1]["veiculo_placa"] == "XYZ9A87"
+
+    listados = client.get("/visitantes", headers=auth_header(zelador)).json()
+    assert len(listados) == 2
+
+
+def test_lote_com_item_invalido_nao_grava_nenhum(client, db_session):
+    predio = make_predio(db_session)
+    unidade = make_unidade(db_session, predio)
+    zelador = make_user(db_session, email="zelador.vi8@test.local", role=RoleEnum.ZELADOR, predio=predio)
+
+    resposta = client.post(
+        "/visitantes/lote",
+        json={
+            "unidade_id": unidade.id,
+            "visitantes": [
+                {"nome_completo": "Convidado válido", "tipo_documento": "nao_informado"},
+                {"nome_completo": "Convidado inválido", "tipo_documento": "cpf"},
+            ],
+        },
+        headers=auth_header(zelador),
+    )
+    assert resposta.status_code == 422
+    assert client.get("/visitantes", headers=auth_header(zelador)).json() == []
+
+
+def test_morador_nao_registra_lote(client, db_session):
+    morador = make_user(db_session, email="morador.vi2@test.local", role=RoleEnum.MORADOR)
+    resposta = client.post(
+        "/visitantes/lote",
+        json={
+            "unidade_id": morador.unidades[0].id,
+            "visitantes": [{"nome_completo": "X", "tipo_documento": "nao_informado"}],
+        },
+        headers=auth_header(morador),
+    )
+    assert resposta.status_code == 403
+
+
 def test_documento_nao_informado_rejeita_numero(client, db_session):
     predio = make_predio(db_session)
     unidade = make_unidade(db_session, predio)

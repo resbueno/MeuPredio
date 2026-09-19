@@ -44,6 +44,12 @@ class Visitante(Base, TimestampMixin, AuditMixin):
     )
     # Preenchido em todo tipo, exceto NAO_INFORMADO (ver validação no schema).
     numero_documento: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # Dados do veículo do visitante - todos opcionais (nem todo visitante
+    # chega de carro), sem vínculo com o cadastro de Veiculo do morador
+    # (mesmo espírito de "log", não de cadastro permanente).
+    veiculo_placa: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    veiculo_modelo: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    veiculo_cor: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
     predio: Mapped["Predio"] = relationship("Predio")
     unidade: Mapped["Unidade"] = relationship("Unidade")

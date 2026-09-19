@@ -465,15 +465,30 @@ export interface Visitante {
   nome_completo: string;
   tipo_documento: TipoDocumentoVisitanteEnum;
   numero_documento: string | null;
+  veiculo_placa: string | null;
+  veiculo_modelo: string | null;
+  veiculo_cor: string | null;
   created_by: number | null;
   created_at: string;
 }
 
-export interface VisitanteCreateInput {
-  unidade_id: number;
+export interface VisitanteItemInput {
   nome_completo: string;
   tipo_documento: TipoDocumentoVisitanteEnum;
   numero_documento?: string | null;
+  veiculo_placa?: string | null;
+  veiculo_modelo?: string | null;
+  veiculo_cor?: string | null;
+}
+
+export interface VisitanteCreateInput extends VisitanteItemInput {
+  unidade_id: number;
+  predio_id?: number | null;
+}
+
+export interface VisitanteLoteCreateInput {
+  unidade_id: number;
+  visitantes: VisitanteItemInput[];
   predio_id?: number | null;
 }
 

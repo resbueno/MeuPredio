@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { Visitante, VisitanteCreateInput } from "./types";
+import type { Visitante, VisitanteCreateInput, VisitanteLoteCreateInput } from "./types";
 
 export async function listVisitantes(filtro: {
   predioId?: number | null;
@@ -13,5 +13,10 @@ export async function listVisitantes(filtro: {
 
 export async function createVisitante(input: VisitanteCreateInput): Promise<Visitante> {
   const { data } = await apiClient.post<Visitante>("/visitantes", input);
+  return data;
+}
+
+export async function createVisitantesLote(input: VisitanteLoteCreateInput): Promise<Visitante[]> {
+  const { data } = await apiClient.post<Visitante[]>("/visitantes/lote", input);
   return data;
 }
