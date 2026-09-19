@@ -634,9 +634,8 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-ink/60 p-3 sm:items-center sm:justify-center sm:p-6">
-      <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
-      <div className="relative flex w-full max-w-3xl flex-1 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:flex-none">
+    <div className="fixed inset-0 z-50 flex flex-col bg-white">
+      <div className="relative flex h-full w-full flex-col overflow-hidden">
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <div className="flex items-center gap-2">
             <img src={logoIcon} alt="" className="h-7 w-auto" />
@@ -677,7 +676,9 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-slate-50/50 p-4">{ABAS[abaAtiva].conteudo}</div>
+        <div className="flex-1 overflow-y-auto bg-slate-50/50 p-4 sm:p-8">
+          <div className="mx-auto w-full max-w-4xl">{ABAS[abaAtiva].conteudo}</div>
+        </div>
 
         <div className="border-t border-slate-100 px-4 py-3 text-center">
           <p className="text-xs text-slate-500">Gostou do que viu? Fale com a gente ou entre no sistema.</p>
