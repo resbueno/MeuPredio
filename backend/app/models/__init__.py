@@ -5,6 +5,7 @@ from app.models.area_comum import AreaComum  # noqa: F401
 from app.models.associations import usuario_unidades  # noqa: F401
 from app.models.aviso_direto import AvisoDireto  # noqa: F401
 from app.models.aviso_mural import AvisoMural  # noqa: F401
+from app.models.contato_lead import ContatoLead  # noqa: F401
 from app.models.despesa_lancamento import DespesaLancamento  # noqa: F401
 from app.models.despesa_recorrente import DespesaRecorrente  # noqa: F401
 from app.models.entrega import Entrega  # noqa: F401
@@ -50,5 +51,6 @@ __all__ = [
     "Visitante",
     "AreaComum",
     "Reserva",
+    "ContatoLead",
     "usuario_unidades",
 ]

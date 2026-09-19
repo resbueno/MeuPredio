@@ -604,3 +604,10 @@ export interface DespesaRecorrenteCreateInput {
   observacoes?: string | null;
   predio_id?: number | null;
 }
+
+export interface ContatoLeadCreateInput {
+  nome: string;
+  email: string;
+  telefone?: string | null;
+  mensagem?: string | null;
+}

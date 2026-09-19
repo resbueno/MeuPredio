@@ -1,8 +1,10 @@
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import logoFull from "../assets/logo-full.png";
 import logoIcon from "../assets/logo-icon.png";
 import fotoHero from "../assets/landing-hero.jpg";
-import fotoDestaque from "../assets/landing-destaque.jpg";
+import { DemoTour } from "../components/landing/DemoTour";
+import { enviarContato } from "../api/contato";
 
 const RECURSOS = [
   {
@@ -105,9 +107,34 @@ const RECURSOS = [
 
 export function LandingPage() {
   const navigate = useNavigate();
+  const [mostrarDemo, setMostrarDemo] = useState(false);
+  const [mostrarFormularioContato, setMostrarFormularioContato] = useState(false);
+  const [contatoEnviado, setContatoEnviado] = useState(false);
+  const [contatoErro, setContatoErro] = useState(false);
+  const [contatoEnviando, setContatoEnviando] = useState(false);
+  const [contatoForm, setContatoForm] = useState({ nome: "", email: "", telefone: "", mensagem: "" });
 
   function irParaLogin(): void {
     navigate("/login");
+  }
+
+  async function onSubmitContato(event: FormEvent): Promise<void> {
+    event.preventDefault();
+    setContatoErro(false);
+    setContatoEnviando(true);
+    try {
+      await enviarContato({
+        nome: contatoForm.nome,
+        email: contatoForm.email,
+        telefone: contatoForm.telefone || undefined,
+        mensagem: contatoForm.mensagem || undefined,
+      });
+      setContatoEnviado(true);
+    } catch {
+      setContatoErro(true);
+    } finally {
+      setContatoEnviando(false);
+    }
   }
 
   return (
@@ -146,7 +173,7 @@ export function LandingPage() {
             </button>
             <button
               type="button"
-              onClick={irParaLogin}
+              onClick={() => setMostrarDemo(true)}
               className="rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
             >
               Conhecer agora
@@ -238,21 +265,6 @@ export function LandingPage() {
               <p className="mt-1 text-sm text-slate-500">{recurso.descricao}</p>
             </div>
           ))}
-
-          <div className="relative overflow-hidden rounded-2xl shadow-sm sm:col-span-2 lg:col-span-1">
-            <img
-              src={fotoDestaque}
-              alt="Fachada de um edifício residencial com varandas iluminadas ao entardecer"
-              className="h-full min-h-[220px] w-full object-cover"
-            />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/10 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-5">
-              <p className="text-sm font-semibold text-white">Prédio em destaque</p>
-              <p className="mt-1 text-xs text-white/80">
-                Mais visibilidade para uma gestão que aproxima todo o condomínio.
-              </p>
-            </div>
-          </div>
         </div>
 
         <p className="mt-8 text-center text-sm font-medium text-slate-500">
@@ -364,16 +376,78 @@ export function LandingPage() {
             Organize a rotina, mantenha todos informados e tenha uma gestão mais tranquila todos os
             dias.
           </p>
-          <button
-            type="button"
-            onClick={irParaLogin}
-            className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:bg-slate-100"
-          >
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
-              <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Começar agora
-          </button>
+          {!mostrarFormularioContato && (
+            <button
+              type="button"
+              onClick={() => setMostrarFormularioContato(true)}
+              className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:bg-slate-100"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+                <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Começar agora
+            </button>
+          )}
+
+          {mostrarFormularioContato && !contatoEnviado && (
+            <form onSubmit={onSubmitContato} className="mx-auto mt-6 max-w-md space-y-3 text-left" noValidate>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <input
+                  required
+                  placeholder="Seu nome"
+                  value={contatoForm.nome}
+                  onChange={(event) => setContatoForm((f) => ({ ...f, nome: event.target.value }))}
+                  className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-white/40 focus:outline-none"
+                />
+                <input
+                  required
+                  type="email"
+                  placeholder="Seu e-mail"
+                  value={contatoForm.email}
+                  onChange={(event) => setContatoForm((f) => ({ ...f, email: event.target.value }))}
+                  className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-white/40 focus:outline-none"
+                />
+              </div>
+              <input
+                placeholder="Telefone (opcional)"
+                value={contatoForm.telefone}
+                onChange={(event) => setContatoForm((f) => ({ ...f, telefone: event.target.value }))}
+                className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-white/40 focus:outline-none"
+              />
+              <textarea
+                rows={3}
+                placeholder="Conte um pouco sobre o seu condomínio (opcional)"
+                value={contatoForm.mensagem}
+                onChange={(event) => setContatoForm((f) => ({ ...f, mensagem: event.target.value }))}
+                className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-white/40 focus:outline-none"
+              />
+              {contatoErro && (
+                <p className="text-sm text-red-300">Não foi possível enviar. Tente novamente.</p>
+              )}
+              <div className="flex justify-center gap-2">
+                <button
+                  type="submit"
+                  disabled={contatoEnviando}
+                  className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:bg-slate-100 disabled:opacity-60"
+                >
+                  {contatoEnviando ? "Enviando..." : "Enviar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMostrarFormularioContato(false)}
+                  className="rounded-lg border border-white/30 px-5 py-2.5 text-sm font-medium text-white hover:bg-white/10"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          )}
+
+          {contatoEnviado && (
+            <p className="mx-auto mt-6 max-w-md text-sm font-medium text-emerald-300">
+              Recebemos seu contato! Em breve alguém da nossa equipe vai falar com você.
+            </p>
+          )}
         </div>
       </section>
 
@@ -387,12 +461,18 @@ export function LandingPage() {
             <a href="#recursos" className="hover:text-ink">
               Recursos
             </a>
-            <span className="hover:text-ink">Segurança</span>
-            <span className="hover:text-ink">Suporte</span>
+            <a href="#como-funciona" className="hover:text-ink">
+              Como funciona
+            </a>
+            <a href="#footer" className="hover:text-ink">
+              Segurança
+            </a>
           </nav>
           <p className="text-xs text-slate-400">Desenvolvido por Renato Bueno - RBBrDev</p>
         </div>
       </footer>
+
+      {mostrarDemo && <DemoTour onClose={() => setMostrarDemo(false)} />}
     </div>
   );
 }

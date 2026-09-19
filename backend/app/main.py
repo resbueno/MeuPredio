@@ -9,6 +9,7 @@ from app.routers import (
     auth,
     avisos_diretos,
     avisos_mural,
+    contato,
     despesas,
     despesas_recorrentes,
     entregas,
@@ -67,3 +68,4 @@ app.include_router(notificacoes.router)
 app.include_router(visitantes.router)
 app.include_router(areas_comuns.router)
 app.include_router(reservas.router)
+app.include_router(contato.router)
