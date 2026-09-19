@@ -11,7 +11,7 @@ interface JwtPayload {
   exp: number;
 }
 
-interface AuthContextValue {
+export interface AuthContextValue {
   user: Usuario | null;
   isLoading: boolean;
   signIn: (email: string, password: string, predioId: number | null) => Promise<void>;
@@ -19,7 +19,7 @@ interface AuthContextValue {
   refreshUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Usuario | null>(null);

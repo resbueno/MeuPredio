@@ -1,10 +1,14 @@
-import { useState, type FormEvent } from "react";
+import { lazy, Suspense, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import logoFull from "../assets/logo-full.png";
 import logoIcon from "../assets/logo-icon.png";
 import fotoHero from "../assets/landing-hero.jpg";
-import { DemoTour } from "../components/landing/DemoTour";
 import { enviarContato } from "../api/contato";
+
+// Prévia carregada sob demanda: traz junto as páginas reais + o backend falso.
+const DemoTour = lazy(() =>
+  import("../components/landing/DemoTour").then((m) => ({ default: m.DemoTour }))
+);
 
 const RECURSOS = [
   {
@@ -466,7 +470,11 @@ export function LandingPage() {
         </div>
       </footer>
 
-      {mostrarDemo && <DemoTour onClose={() => setMostrarDemo(false)} />}
+      {mostrarDemo && (
+        <Suspense fallback={null}>
+          <DemoTour onClose={() => setMostrarDemo(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }

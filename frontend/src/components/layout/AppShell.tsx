@@ -6,6 +6,7 @@ import { temPapel } from "../../auth/roles";
 import type { RoleEnum } from "../../api/types";
 import logoIcon from "../../assets/logo-icon.png";
 import { NotificacaoBell } from "./NotificacaoBell";
+import { useDemo } from "../landing/demo/DemoContext";
 
 interface NavItem {
   to: string;
@@ -35,15 +36,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const demo = useDemo();
 
   function handleSignOut(): void {
+    if (demo) {
+      demo.onClose();
+      return;
+    }
     signOut();
     navigate("/login", { replace: true });
   }
 
   const visibleItems = NAV_ITEMS.filter(
-    (item) => !item.roles || temPapel(user, ...item.roles)
+    (item) =>
+      (!item.roles || temPapel(user, ...item.roles)) &&
+      (!demo || demo.rotasDisponiveis.includes(item.to))
   );
+  const rotuloSair = demo ? "Sair da prévia" : "Sair";
 
   function renderNavList(onNavigate?: () => void) {
     return (
@@ -89,7 +98,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               onClick={handleSignOut}
               className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
             >
-              Sair
+              {rotuloSair}
             </button>
           </div>
         </aside>
@@ -129,7 +138,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   onClick={handleSignOut}
                   className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
                 >
-                  Sair
+                  {rotuloSair}
                 </button>
               </div>
             )}
@@ -190,7 +199,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 }}
                 className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
               >
-                Sair
+                {rotuloSair}
               </button>
             </div>
           </aside>
