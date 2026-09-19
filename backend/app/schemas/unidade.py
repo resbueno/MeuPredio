@@ -19,10 +19,12 @@ class UnidadeCreate(UnidadeBase):
     # Peso usado pelo motor de rateio quando o critério é "fracao_ideal" -
     # ver Unidade.fracao_ideal.
     fracao_ideal: Decimal | None = Field(default=None, gt=0, max_digits=9, decimal_places=6)
+    vaga: str | None = Field(default=None, max_length=20)
 
 
 class UnidadeLoteItem(UnidadeBase):
     fracao_ideal: Decimal | None = Field(default=None, gt=0, max_digits=9, decimal_places=6)
+    vaga: str | None = Field(default=None, max_length=20)
 
 
 class UnidadeLoteCreate(BaseModel):
@@ -38,6 +40,7 @@ class UnidadeUpdate(BaseModel):
     bloco: str | None = Field(default=None, min_length=1, max_length=20)
     numero: str | None = Field(default=None, min_length=1, max_length=20)
     fracao_ideal: Decimal | None = Field(default=None, gt=0, max_digits=9, decimal_places=6)
+    vaga: str | None = Field(default=None, max_length=20)
 
 
 class UnidadeRead(BaseModel):
@@ -48,6 +51,7 @@ class UnidadeRead(BaseModel):
     bloco: str
     numero: str
     fracao_ideal: Decimal | None
+    vaga: str | None
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None

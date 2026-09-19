@@ -54,6 +54,7 @@ def criar_unidade(
         bloco=payload.bloco,
         numero=payload.numero,
         fracao_ideal=payload.fracao_ideal,
+        vaga=payload.vaga,
         created_by=current_user.id,
     )
     db.add(unidade)
@@ -106,6 +107,7 @@ def criar_unidades_em_lote(
             bloco=item.bloco,
             numero=item.numero,
             fracao_ideal=item.fracao_ideal,
+            vaga=item.vaga,
             created_by=current_user.id,
         )
         for item in payload.unidades
@@ -190,6 +192,8 @@ def atualizar_unidade(
         unidade.numero = campos_enviados["numero"]
     if "fracao_ideal" in campos_enviados:
         unidade.fracao_ideal = campos_enviados["fracao_ideal"]
+    if "vaga" in campos_enviados:
+        unidade.vaga = campos_enviados["vaga"]
 
     db.add(unidade)
     try:

@@ -18,6 +18,7 @@ import type { Unidade, UnidadeInput } from "../../api/types";
 const unidadeSchema = z.object({
   bloco: z.string().min(1, "Informe o bloco."),
   numero: z.string().min(1, "Informe o número."),
+  vaga: z.string().optional(),
   predio_id: z.string().optional(),
 });
 
@@ -28,6 +29,7 @@ function toUnidadeInput(values: UnidadeFormValues): UnidadeInput {
   return {
     bloco: values.bloco,
     numero: values.numero,
+    vaga: values.vaga?.trim() || null,
     predio_id: predioId ? Number(predioId) : null,
   };
 }
@@ -69,14 +71,19 @@ export function UnidadesPage() {
     formState: { errors, isSubmitting },
   } = useForm<UnidadeFormValues>({
     resolver: zodResolver(unidadeSchema),
-    defaultValues: { bloco: "", numero: "", predio_id: "" },
+    defaultValues: { bloco: "", numero: "", vaga: "", predio_id: "" },
   });
 
   useEffect(() => {
     if (editing) {
-      reset({ bloco: editing.bloco, numero: editing.numero, predio_id: String(editing.predio_id) });
+      reset({
+        bloco: editing.bloco,
+        numero: editing.numero,
+        vaga: editing.vaga ?? "",
+        predio_id: String(editing.predio_id),
+      });
     } else {
-      reset({ bloco: "", numero: "", predio_id: "" });
+      reset({ bloco: "", numero: "", vaga: "", predio_id: "" });
     }
   }, [editing, reset]);
 
@@ -86,7 +93,7 @@ export function UnidadesPage() {
     mutationFn: createUnidade,
     onSuccess: () => {
       invalidate();
-      reset({ bloco: "", numero: "", predio_id: "" });
+      reset({ bloco: "", numero: "", vaga: "", predio_id: "" });
     },
   });
 
@@ -106,7 +113,10 @@ export function UnidadesPage() {
 
   function onSubmit(values: UnidadeFormValues): void {
     if (editing) {
-      updateMutation.mutate({ id: editing.id, input: { bloco: values.bloco, numero: values.numero } });
+      updateMutation.mutate({
+        id: editing.id,
+        input: { bloco: values.bloco, numero: values.numero, vaga: values.vaga?.trim() || null },
+      });
       return;
     }
     createMutation.mutate(toUnidadeInput(values));
@@ -180,6 +190,16 @@ export function UnidadesPage() {
                 <p className="mt-1 text-xs text-red-600">{errors.numero.message}</p>
               )}
             </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              Vaga de garagem (opcional)
+            </label>
+            <input
+              placeholder="Ex.: 12A"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              {...register("vaga")}
+            />
           </div>
           {souAdministrador && !editing && (
             <div>
@@ -345,6 +365,7 @@ export function UnidadesPage() {
               <p className="font-medium text-slate-800">
                 Bloco {unidade.bloco} - {unidade.numero}
               </p>
+              {unidade.vaga && <p className="text-xs text-slate-500">Vaga: {unidade.vaga}</p>}
             </div>
             {podeGerenciar && (
               <div className="flex shrink-0 gap-3">

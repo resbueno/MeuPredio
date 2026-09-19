@@ -44,6 +44,10 @@ class Unidade(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
     # ativas), mas na prática costuma refletir a fração ideal do condomínio.
     # Nullable: nem toda unidade tem esse dado definido ainda.
     fracao_ideal: Mapped[Decimal | None] = mapped_column(Numeric(9, 6), nullable=True)
+    # Identificação da vaga de garagem vinculada - texto livre (nem todo
+    # condomínio numera vagas de forma simples, ex.: "12A", "Subsolo 2 - 34")
+    # e opcional (nem toda unidade tem vaga própria).
+    vaga: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     predio: Mapped["Predio"] = relationship("Predio", back_populates="unidades")
     usuarios: Mapped[list["Usuario"]] = relationship(

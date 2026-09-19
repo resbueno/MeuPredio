@@ -43,6 +43,24 @@ def test_sindico_cria_unidade_no_proprio_predio_e_gera_auditoria(client, db_sess
     assert log is not None
 
 
+def test_cria_unidade_com_vaga_e_atualiza_vaga(client, db_session):
+    sindico = make_user(db_session, email="sindico.u1b@test.local", role=RoleEnum.SINDICO)
+    response = client.post(
+        "/unidades",
+        json={"bloco": "A", "numero": "102", "vaga": "12A"},
+        headers=auth_header(sindico),
+    )
+    assert response.status_code == 201
+    assert response.json()["vaga"] == "12A"
+
+    unidade_id = response.json()["id"]
+    atualizada = client.patch(
+        f"/unidades/{unidade_id}", json={"vaga": "34"}, headers=auth_header(sindico)
+    )
+    assert atualizada.status_code == 200
+    assert atualizada.json()["vaga"] == "34"
+
+
 def test_sindico_nao_pode_escolher_outro_predio(client, db_session):
     """predio_id no payload é ignorado para quem já tem prédio próprio -
     isolamento nunca depende do cliente "se comportar"."""

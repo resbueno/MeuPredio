@@ -14,7 +14,7 @@ export async function createUnidade(input: UnidadeInput): Promise<Unidade> {
 }
 
 export async function createUnidadesLote(input: {
-  unidades: { bloco: string; numero: string }[];
+  unidades: { bloco: string; numero: string; vaga?: string | null }[];
   predio_id?: number | null;
 }): Promise<Unidade[]> {
   const { data } = await apiClient.post<Unidade[]>("/unidades/lote", input);

@@ -45,6 +45,7 @@ export interface Unidade {
   predio_id: number;
   bloco: string;
   numero: string;
+  vaga: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -53,6 +54,7 @@ export interface Unidade {
 export interface UnidadeInput {
   bloco: string;
   numero: string;
+  vaga?: string | null;
   predio_id?: number | null;
 }
 
