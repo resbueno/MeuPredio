@@ -142,7 +142,13 @@ export function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="relative isolate min-h-screen bg-white">
+      {/* Fundo da tela de login com as cores invertidas (base clara, glows em âmbar) e bem translúcido. */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[#e69e12]/20 blur-3xl" />
+        <div className="absolute -bottom-24 -right-16 h-80 w-80 rounded-full bg-[#e69e12]/15 blur-3xl" />
+      </div>
+
       {/* Navbar */}
       <header className="sticky top-0 z-20 border-b border-slate-100 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
@@ -187,7 +193,7 @@ export function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="bg-gradient-to-b from-brand-50/70 to-white">
+      <section>
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:items-center lg:py-20">
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700">
