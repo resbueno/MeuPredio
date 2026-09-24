@@ -162,3 +162,37 @@ def test_soft_delete_veiculo(client, db_session):
     listagem = client.get("/veiculos", headers=auth_header(zelador))
     ids = [v["id"] for v in listagem.json()]
     assert criado["id"] not in ids
+
+
+def test_sindico_nao_acessa_veiculo_de_outro_predio(client, db_session):
+    """Isolamento multi-tenant: um síndico não pode ver, editar ou apagar
+    um veículo de outro prédio só adivinhando o id (regressão)."""
+    predio_a = make_predio(db_session, nome="Predio A")
+    unidade_a = make_unidade(db_session, predio_a)
+    admin = make_user(db_session, email="admin.v9@test.local", role=RoleEnum.ADMINISTRADOR)
+    veiculo_a = client.post(
+        "/veiculos",
+        json={"unidade_id": unidade_a.id, "placa": "AAA9001", "modelo": "Gol", "cor": "Branco"},
+        headers=auth_header(admin),
+    ).json()
+
+    predio_b = make_predio(db_session, nome="Predio B")
+    sindico_b = make_user(
+        db_session, email="sindico.v9@test.local", role=RoleEnum.SINDICO, predio=predio_b
+    )
+
+    resposta_get = client.get(f"/veiculos/{veiculo_a['id']}", headers=auth_header(sindico_b))
+    assert resposta_get.status_code == 404
+
+    resposta_patch = client.patch(
+        f"/veiculos/{veiculo_a['id']}", json={"cor": "Preto"}, headers=auth_header(sindico_b)
+    )
+    assert resposta_patch.status_code == 404
+
+    resposta_delete = client.delete(f"/veiculos/{veiculo_a['id']}", headers=auth_header(sindico_b))
+    assert resposta_delete.status_code == 404
+
+    veiculo = db_session.get(Veiculo, veiculo_a["id"])
+    db_session.refresh(veiculo)
+    assert veiculo.deleted_at is None
+    assert veiculo.cor == "Branco"

@@ -42,10 +42,17 @@ def _validar_unidade(db: Session, unidade_id: int, current_user: Usuario) -> Uni
     return unidade
 
 
-def _autorizar_acesso_morador(current_user: Usuario, veiculo: Veiculo) -> None:
-    """Um morador/proprietário só enxerga veículos das PRÓPRIAS unidades
-    (relação N:N - pode ter mais de uma); papéis operacionais
-    (administrador/síndico/zelador) enxergam qualquer veículo do prédio."""
+def _autorizar_acesso_veiculo(current_user: Usuario, veiculo: Veiculo) -> None:
+    """Isolamento multi-tenant: ninguém acessa/altera veículo de outro
+    prédio - nem por acesso direto via id (some como 404, não 403, para não
+    confirmar que o veículo existe em outro tenant). Administrador (sem
+    prédio) fica de fora dessa checagem.
+
+    Dentro do PRÓPRIO prédio: papéis operacionais (administrador/síndico/
+    zelador) enxergam qualquer veículo; morador/proprietário só os das
+    PRÓPRIAS unidades (relação N:N - pode ter mais de uma)."""
+    if current_user.role != RoleEnum.ADMINISTRADOR and veiculo.unidade.predio_id != current_user.predio_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Veículo não encontrado.")
     if current_user.roles_efetivos & set(_OPERACIONAIS):
         return
     minhas_unidades = {u.id for u in current_user.unidades}
@@ -125,7 +132,7 @@ def obter_veiculo(
     current_user: Usuario = Depends(get_current_user),
 ) -> Veiculo:
     veiculo = _veiculo_ou_404(db, veiculo_id)
-    _autorizar_acesso_morador(current_user, veiculo)
+    _autorizar_acesso_veiculo(current_user, veiculo)
     return veiculo
 
 
@@ -138,6 +145,7 @@ def atualizar_veiculo(
     current_user: Usuario = Depends(require_role(*_OPERACIONAIS)),
 ) -> Veiculo:
     veiculo = _veiculo_ou_404(db, veiculo_id)
+    _autorizar_acesso_veiculo(current_user, veiculo)
     campos_enviados = payload.model_dump(exclude_unset=True)
 
     if "unidade_id" in campos_enviados:
@@ -176,6 +184,7 @@ def remover_veiculo(
     current_user: Usuario = Depends(require_role(*_OPERACIONAIS)),
 ) -> None:
     veiculo = _veiculo_ou_404(db, veiculo_id)
+    _autorizar_acesso_veiculo(current_user, veiculo)
     if veiculo.deleted_at is not None:
         return None
 
