@@ -76,6 +76,12 @@ class Usuario(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     consent_lgpd_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Carimbo de "última troca de senha" - `get_current_user` invalida (401)
+    # qualquer JWT emitido ANTES deste instante (compara com o `iat` do
+    # token). NULL = nunca rastreado, nenhuma restrição. Sem isto, trocar a
+    # senha por suspeita de conta comprometida não revogava tokens já
+    # emitidos (válidos stateless até expirar, até 60min por padrão).
+    senha_alterada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     predio: Mapped["Predio | None"] = relationship(
         "Predio", back_populates="usuarios", foreign_keys=[predio_id]

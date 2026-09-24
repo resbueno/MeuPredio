@@ -24,6 +24,29 @@ def hash_password(password: str) -> str:
     return _pwd_context.hash(password)
 
 
+# Lista pequena e deliberada de senhas triviais que passariam na regra
+# "mistura letra e número" mas são as primeiras que qualquer dicionário de
+# força bruta tenta - normalizada para minúsculas na comparação, então cobre
+# variações de maiúscula/minúscula (ex.: "Senha123" também cai aqui).
+_SENHAS_COMUNS = {
+    "senha123", "senha1234", "12345678", "123456789", "1234567890",
+    "password", "password1", "password123", "qwerty123", "abc12345",
+    "admin123", "condominio1", "predio123", "sindico123", "portaria123",
+}
+
+
+def validar_senha_forte(password: str) -> str | None:
+    """Retorna a mensagem de erro se a senha for fraca, ou `None` se ok.
+    Usado pelos 3 pontos onde uma senha nova é definida (cadastro de
+    usuário, atualização e autocadastro via convite) - mantém a regra em
+    um único lugar em vez de repetida em cada schema."""
+    if password.isdigit() or password.isalpha():
+        return "A senha deve ter ao menos 8 caracteres combinando letras e números."
+    if password.lower() in _SENHAS_COMUNS:
+        return "Essa senha é comum demais e fácil de adivinhar - escolha outra."
+    return None
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return _pwd_context.verify(plain_password, hashed_password)
 

@@ -51,6 +51,15 @@ def get_current_user(
     if user is None or user.is_deleted or not user.is_active:
         raise credentials_exception
 
+    # Revogação de token por troca de senha: um JWT emitido ANTES da última
+    # troca (usuario.senha_alterada_em) nunca mais passa, mesmo que ainda não
+    # tenha expirado - sem isto, tokens são stateless e um vazado continuaria
+    # válido até o `exp` original mesmo depois de trocar a senha.
+    if user.senha_alterada_em is not None:
+        emitido_em = payload.get("iat")
+        if emitido_em is None or emitido_em < user.senha_alterada_em.timestamp():
+            raise credentials_exception
+
     return user
 
 

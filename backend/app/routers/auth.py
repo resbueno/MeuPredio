@@ -8,6 +8,11 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import registrar_log
 from app.core.dependencies import get_db
+from app.core.rate_limit import (
+    limpar_falhas_login,
+    registrar_falha_login,
+    segundos_bloqueado_login,
+)
 from app.core.security import create_access_token, verify_password_constant_time
 from app.models.usuario import Usuario
 from app.schemas.auth import Token
@@ -28,6 +33,20 @@ def login(
     predio_id: int | None = Form(default=None),
     db: Session = Depends(get_db),
 ) -> Token:
+    ip_origem = request.client.host if request.client else None
+    # Chave de conta inclui o prédio (ou "global" para o administrador, que
+    # não tem prédio) - mesmo e-mail em prédios diferentes é gente diferente,
+    # não pode compartilhar o mesmo contador de tentativas.
+    chave_conta = f"{form_data.username.lower()}@{predio_id if predio_id is not None else 'global'}"
+
+    bloqueado_por = segundos_bloqueado_login(chave_conta, ip_origem)
+    if bloqueado_por is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Muitas tentativas de login. Tente novamente em alguns minutos.",
+            headers={"Retry-After": str(int(bloqueado_por) + 1)},
+        )
+
     query = db.query(Usuario).filter(Usuario.email == form_data.username)
     if predio_id is not None:
         query = query.filter(Usuario.predio_id == predio_id)
@@ -55,13 +74,17 @@ def login(
     )
 
     if not usuario_elegivel or not senha_confere:
+        registrar_falha_login(chave_conta, ip_origem)
         raise invalid_credentials
     if not user.is_active:
+        # Inativo não conta como tentativa de força bruta (o e-mail/senha
+        # estavam certos) - não registra falha nem limpa o contador.
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Usuário inativo. Contate o administrador do condomínio.",
         )
 
+    limpar_falhas_login(chave_conta, ip_origem)
     user.last_login_at = datetime.now(timezone.utc)
     db.add(user)
 

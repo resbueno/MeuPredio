@@ -4,6 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
+from app.core.security import validar_senha_forte
 from app.models.enums import TODOS_MODULOS, RoleEnum
 
 
@@ -53,10 +54,9 @@ class UsuarioCreate(UsuarioBase):
     @field_validator("password")
     @classmethod
     def senha_deve_ser_forte(cls, v: str) -> str:
-        if v.isdigit() or v.isalpha():
-            raise ValueError(
-                "A senha deve ter ao menos 8 caracteres combinando letras e numeros."
-            )
+        erro = validar_senha_forte(v)
+        if erro:
+            raise ValueError(erro)
         return v
 
 
@@ -92,10 +92,10 @@ class UsuarioUpdate(BaseModel):
     @field_validator("password")
     @classmethod
     def senha_deve_ser_forte(cls, v: str | None) -> str | None:
-        if v is not None and (v.isdigit() or v.isalpha()):
-            raise ValueError(
-                "A senha deve ter ao menos 8 caracteres combinando letras e numeros."
-            )
+        if v is not None:
+            erro = validar_senha_forte(v)
+            if erro:
+                raise ValueError(erro)
         return v
 
 

@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from app.core.security import validar_senha_forte
 from app.core.viacep import normalizar_cep
 from app.models.enums import ModuloEnum
 
@@ -152,3 +153,11 @@ class CadastroViaConviteRequest(BaseModel):
     full_name: str = Field(min_length=2, max_length=255)
     role: Literal["morador", "proprietario"]
     unidade_ids: list[int] = Field(min_length=1)
+
+    @field_validator("password")
+    @classmethod
+    def senha_deve_ser_forte(cls, v: str) -> str:
+        erro = validar_senha_forte(v)
+        if erro:
+            raise ValueError(erro)
+        return v

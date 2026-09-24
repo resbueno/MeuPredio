@@ -113,3 +113,17 @@ def client(db_session: Session):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limit_login():
+    """O lockout de login (app/core/rate_limit.py) é estado em memória de
+    processo, global entre testes - sem isto, testes que provocam login
+    falho (em qualquer arquivo) compartilhariam o mesmo contador por IP
+    (TestClient sempre usa o mesmo host simulado) e, na soma de toda a
+    suíte, acabariam disparando 429 em algum teste que só esperava 401."""
+    from app.core import rate_limit
+
+    rate_limit._tentativas.clear()
+    yield
+    rate_limit._tentativas.clear()

@@ -236,6 +236,12 @@ def atualizar_usuario(
         usuario.is_active = campos_enviados["is_active"]
     if campos_enviados.get("password"):
         usuario.hashed_password = hash_password(campos_enviados["password"])
+        # Revoga qualquer JWT emitido antes desta troca (ver
+        # get_current_user) - importante sobretudo quando é outra pessoa
+        # (síndico/administrador) trocando a senha de alguém por suspeita de
+        # conta comprometida: sem isto, um token já vazado continuaria
+        # válido até expirar por conta própria.
+        usuario.senha_alterada_em = datetime.now(timezone.utc)
 
     db.add(usuario)
     db.flush()
@@ -395,6 +401,7 @@ def anonimizar_usuario(
     # reversível para nenhuma senha real) para invalidar qualquer credencial
     # antiga, em defesa em profundidade.
     usuario.hashed_password = hash_password(secrets.token_urlsafe(32))
+    usuario.senha_alterada_em = datetime.now(timezone.utc)
     usuario.consent_lgpd_accepted_at = None
     usuario.is_active = False
     usuario.deleted_at = usuario.deleted_at or datetime.now(timezone.utc)
