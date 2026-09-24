@@ -13,6 +13,7 @@ import {
   listUnidades,
   updateUnidade,
 } from "../../api/unidades";
+import { listPredios } from "../../api/predios";
 import type { Unidade, UnidadeInput } from "../../api/types";
 
 const unidadeSchema = z.object({
@@ -62,6 +63,12 @@ export function UnidadesPage() {
   const { data: unidades, isLoading } = useQuery({
     queryKey: ["unidades"],
     queryFn: () => listUnidades(),
+  });
+
+  const { data: predios } = useQuery({
+    queryKey: ["predios"],
+    queryFn: listPredios,
+    enabled: souAdministrador,
   });
 
   const {
@@ -204,13 +211,19 @@ export function UnidadesPage() {
           {souAdministrador && !editing && (
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">
-                ID do prédio (obrigatório para administrador)
+                Prédio (obrigatório para administrador)
               </label>
-              <input
-                inputMode="numeric"
+              <select
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 {...register("predio_id")}
-              />
+              >
+                <option value="">Selecione um prédio...</option>
+                {predios?.map((predio) => (
+                  <option key={predio.id} value={predio.id}>
+                    {predio.nome}
+                  </option>
+                ))}
+              </select>
               <p className="mt-1 text-xs text-slate-400">
                 Síndico não precisa preencher - a unidade sempre vai para o próprio prédio.
               </p>
@@ -306,15 +319,19 @@ export function UnidadesPage() {
 
               {souAdministrador && (
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">
-                    ID do prédio
-                  </label>
-                  <input
-                    inputMode="numeric"
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Prédio</label>
+                  <select
                     value={lotePredioId}
                     onChange={(event) => setLotePredioId(event.target.value)}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  />
+                  >
+                    <option value="">Selecione um prédio...</option>
+                    {predios?.map((predio) => (
+                      <option key={predio.id} value={predio.id}>
+                        {predio.nome}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 

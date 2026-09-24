@@ -13,6 +13,7 @@ import {
   updateUsuario,
 } from "../../api/usuarios";
 import { listUnidades } from "../../api/unidades";
+import { listPredios } from "../../api/predios";
 import type { RoleEnum, Usuario, UsuarioCreateInput, UsuarioUpdateInput } from "../../api/types";
 
 const ROLES: RoleEnum[] = ["morador", "proprietario", "sindico", "zelador", "administrador"];
@@ -46,6 +47,12 @@ export function UsuariosPage() {
   const { data: usuarios, isLoading } = useQuery({
     queryKey: ["usuarios"],
     queryFn: listUsuarios,
+  });
+
+  const { data: predios } = useQuery({
+    queryKey: ["predios"],
+    queryFn: listPredios,
+    enabled: souAdministrador,
   });
 
   const {
@@ -246,13 +253,19 @@ export function UsuariosPage() {
         {souAdministrador && !editing && (
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">
-              ID do prédio (obrigatório quando o papel não é administrador)
+              Prédio (obrigatório quando o papel não é administrador)
             </label>
-            <input
-              inputMode="numeric"
+            <select
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               {...register("predio_id")}
-            />
+            >
+              <option value="">Selecione um prédio...</option>
+              {predios?.map((predio) => (
+                <option key={predio.id} value={predio.id}>
+                  {predio.nome}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
@@ -277,7 +290,7 @@ export function UsuariosPage() {
               {(!unidadesCombo || unidadesCombo.length === 0) && (
                 <p className="px-2 py-1 text-xs text-slate-400">
                   {souAdministrador && !predioIdDigitado?.trim()
-                    ? "Informe o ID do prédio acima para listar as unidades."
+                    ? "Selecione o prédio acima para listar as unidades."
                     : "Nenhuma unidade cadastrada neste prédio."}
                 </p>
               )}
