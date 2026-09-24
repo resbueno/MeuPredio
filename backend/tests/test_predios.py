@@ -114,6 +114,55 @@ def test_gerar_convite_e_fluxo_de_autocadastro(client, db_session):
     assert cadastro.status_code == 201
 
 
+def test_admin_edita_nome_do_predio(client, db_session):
+    admin = make_user(db_session, email="admin.pe1@test.local", role=RoleEnum.ADMINISTRADOR)
+    predio = make_predio(db_session, nome="Nome Antigo")
+
+    response = client.patch(
+        f"/predios/{predio.id}", json={"nome": "Nome Novo"}, headers=auth_header(admin)
+    )
+    assert response.status_code == 200
+    assert response.json()["nome"] == "Nome Novo"
+    assert response.json()["cep"] == predio.cep
+
+
+def test_editar_cep_refaz_consulta_viacep(client, db_session):
+    admin = make_user(db_session, email="admin.pe2@test.local", role=RoleEnum.ADMINISTRADOR)
+    predio = make_predio(db_session, cep="10000001", numero="1")
+
+    response = client.patch(
+        f"/predios/{predio.id}",
+        json={"cep": "01310-100"},
+        headers=auth_header(admin),
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["cep"] == "01310100"
+    assert body["logradouro"] == "Rua Teste"
+
+
+def test_editar_para_cep_numero_ja_usado_retorna_409(client, db_session):
+    admin = make_user(db_session, email="admin.pe3@test.local", role=RoleEnum.ADMINISTRADOR)
+    predio_a = make_predio(db_session, cep="10000002", numero="2")
+    predio_b = make_predio(db_session, cep="10000003", numero="3")
+
+    response = client.patch(
+        f"/predios/{predio_b.id}",
+        json={"cep": predio_a.cep, "numero": predio_a.numero},
+        headers=auth_header(admin),
+    )
+    assert response.status_code == 409
+
+
+def test_sindico_nao_pode_editar_predio(client, db_session):
+    predio = make_predio(db_session)
+    sindico = make_user(db_session, email="sindico.pe1@test.local", role=RoleEnum.SINDICO, predio=predio)
+    response = client.patch(
+        f"/predios/{predio.id}", json={"nome": "Tentativa"}, headers=auth_header(sindico)
+    )
+    assert response.status_code == 403
+
+
 def test_novo_predio_nasce_com_todos_os_modulos_habilitados(client, db_session):
     admin = make_user(db_session, email="admin.p5@test.local", role=RoleEnum.ADMINISTRADOR)
     response = client.post(

@@ -48,6 +48,22 @@ class PredioRead(BaseModel):
     deleted_at: datetime | None
 
 
+class PredioAtualizar(BaseModel):
+    """Payload de `PATCH /predios/{id}`: só os campos enviados são
+    alterados (`exclude_unset`). Mudar `cep`/`numero` refaz a consulta ao
+    ViaCEP (endereço é recalculado) e reconfere a unicidade do par."""
+
+    nome: str | None = Field(default=None, min_length=2, max_length=255)
+    cep: str | None = Field(default=None, min_length=8, max_length=9)
+    numero: str | None = Field(default=None, min_length=1, max_length=20)
+    complemento: str | None = Field(default=None, max_length=100)
+
+    @field_validator("cep")
+    @classmethod
+    def validar_cep(cls, v: str | None) -> str | None:
+        return normalizar_cep(v) if v is not None else v
+
+
 class PredioModulosUpdate(BaseModel):
     """Payload de `PUT /predios/{id}/modulos`: substitui por completo a
     lista de módulos habilitados do prédio (não é um patch incremental)."""

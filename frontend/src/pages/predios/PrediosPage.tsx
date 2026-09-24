@@ -5,7 +5,7 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
 import axios from "axios";
 import { AppShell } from "../../components/layout/AppShell";
-import { atualizarModulos, createPredio, gerarConvite, listPredios } from "../../api/predios";
+import { atualizarModulos, createPredio, gerarConvite, listPredios, updatePredio } from "../../api/predios";
 import { TODOS_MODULOS, type ModuloEnum, type Predio } from "../../api/types";
 
 const predioSchema = z.object({
@@ -26,10 +26,20 @@ function linkDeCadastro(token: string): string {
   return `${base}/cadastro/${token}`;
 }
 
+interface EdicaoPredio {
+  nome: string;
+  cep: string;
+  numero: string;
+  complemento: string;
+}
+
 export function PrediosPage() {
   const queryClient = useQueryClient();
   const [convitesGerados, setConvitesGerados] = useState<Record<number, string>>({});
   const [erroCriacao, setErroCriacao] = useState<string | null>(null);
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [edicao, setEdicao] = useState<EdicaoPredio>({ nome: "", cep: "", numero: "", complemento: "" });
+  const [erroEdicao, setErroEdicao] = useState<string | null>(null);
 
   const { data: predios, isLoading } = useQuery({ queryKey: ["predios"], queryFn: listPredios });
 
@@ -87,6 +97,51 @@ export function PrediosPage() {
       queryClient.invalidateQueries({ queryKey: ["predios"] });
     },
   });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ predioId, input }: { predioId: number; input: EdicaoPredio }) =>
+      updatePredio(predioId, {
+        nome: input.nome,
+        cep: input.cep,
+        numero: input.numero,
+        complemento: input.complemento || null,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["predios"] });
+      setEditandoId(null);
+      setErroEdicao(null);
+    },
+    onError: (err) => {
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        setErroEdicao("CEP não encontrado.");
+      } else if (axios.isAxiosError(err) && err.response?.status === 409) {
+        setErroEdicao("Já existe um prédio cadastrado com este CEP e número.");
+      } else {
+        setErroEdicao("Não foi possível salvar as alterações.");
+      }
+    },
+  });
+
+  function iniciarEdicao(predio: Predio): void {
+    setEditandoId(predio.id);
+    setErroEdicao(null);
+    setEdicao({
+      nome: predio.nome,
+      cep: predio.cep,
+      numero: predio.numero,
+      complemento: predio.complemento ?? "",
+    });
+  }
+
+  function cancelarEdicao(): void {
+    setEditandoId(null);
+    setErroEdicao(null);
+  }
+
+  function salvarEdicao(predioId: number): void {
+    setErroEdicao(null);
+    updateMutation.mutate({ predioId, input: edicao });
+  }
 
   function onSubmit(values: PredioFormValues): void {
     setErroCriacao(null);
@@ -243,22 +298,94 @@ export function PrediosPage() {
           const token = convitesGerados[predio.id];
           return (
             <li key={predio.id} className="rounded-xl bg-white p-3 shadow-sm">
-              <p className="font-medium text-slate-800">{predio.nome}</p>
-              <p className="text-xs text-slate-500">
-                {predio.logradouro ? `${predio.logradouro}, ` : ""}
-                {predio.numero} {predio.complemento ? `- ${predio.complemento}` : ""} · {predio.cidade}
-                {predio.uf ? `/${predio.uf}` : ""}
-              </p>
+              {editandoId === predio.id ? (
+                <div className="space-y-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">Nome</label>
+                    <input
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      value={edicao.nome}
+                      onChange={(e) => setEdicao((atual) => ({ ...atual, nome: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">CEP</label>
+                      <input
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        value={edicao.cep}
+                        onChange={(e) => setEdicao((atual) => ({ ...atual, cep: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">Número</label>
+                      <input
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        value={edicao.numero}
+                        onChange={(e) => setEdicao((atual) => ({ ...atual, numero: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">
+                      Complemento
+                    </label>
+                    <input
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      value={edicao.complemento}
+                      onChange={(e) => setEdicao((atual) => ({ ...atual, complemento: e.target.value }))}
+                    />
+                  </div>
+                  {erroEdicao && <p className="text-xs text-red-600">{erroEdicao}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => salvarEdicao(predio.id)}
+                      disabled={updateMutation.isPending}
+                      className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+                    >
+                      Salvar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelarEdicao}
+                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-slate-800">{predio.nome}</p>
+                      <p className="text-xs text-slate-500">
+                        {predio.logradouro ? `${predio.logradouro}, ` : ""}
+                        {predio.numero} {predio.complemento ? `- ${predio.complemento}` : ""} · {predio.cidade}
+                        {predio.uf ? `/${predio.uf}` : ""}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => iniciarEdicao(predio)}
+                      className="shrink-0 text-xs font-medium text-brand-600"
+                    >
+                      Editar
+                    </button>
+                  </div>
 
-              <div className="mt-2 flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => conviteMutation.mutate(predio.id)}
-                  className="text-xs font-medium text-brand-600"
-                >
-                  Gerar link de autocadastro
-                </button>
-              </div>
+                  <div className="mt-2 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => conviteMutation.mutate(predio.id)}
+                      className="text-xs font-medium text-brand-600"
+                    >
+                      Gerar link de autocadastro
+                    </button>
+                  </div>
+                </>
+              )}
 
               <div className="mt-3 rounded-lg bg-slate-50 p-2">
                 <p className="mb-1.5 text-xs font-semibold text-slate-600">Módulos habilitados</p>

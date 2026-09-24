@@ -128,6 +128,13 @@ export interface PredioCreateInput {
   modulos_habilitados?: ModuloEnum[];
 }
 
+export interface PredioUpdateInput {
+  nome?: string;
+  cep?: string;
+  numero?: string;
+  complemento?: string | null;
+}
+
 export interface PredioIdentificado {
   id: number;
   nome: string;

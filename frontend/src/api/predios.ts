@@ -7,6 +7,7 @@ import type {
   PredioCreateInput,
   PredioIdentificado,
   PredioIntegracaoOcrStatus,
+  PredioUpdateInput,
   Usuario,
 } from "./types";
 
@@ -22,6 +23,11 @@ export async function listPredios(): Promise<Predio[]> {
 
 export async function createPredio(input: PredioCreateInput): Promise<Predio> {
   const { data } = await apiClient.post<Predio>("/predios", input);
+  return data;
+}
+
+export async function updatePredio(predioId: number, input: PredioUpdateInput): Promise<Predio> {
+  const { data } = await apiClient.patch<Predio>(`/predios/${predioId}`, input);
   return data;
 }
 

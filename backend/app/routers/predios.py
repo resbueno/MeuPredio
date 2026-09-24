@@ -23,6 +23,7 @@ from app.models.unidade import Unidade
 from app.models.usuario import Usuario
 from app.schemas.predio import (
     CadastroViaConviteRequest,
+    PredioAtualizar,
     PredioConviteInfo,
     PredioConviteRead,
     PredioCreate,
@@ -142,6 +143,68 @@ def obter_predio(
     current_user: Usuario = Depends(require_role(RoleEnum.ADMINISTRADOR)),
 ) -> Predio:
     return _predio_ou_404(db, predio_id)
+
+
+@router.patch("/predios/{predio_id}", response_model=PredioRead)
+def atualizar_predio(
+    predio_id: int,
+    payload: PredioAtualizar,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(RoleEnum.ADMINISTRADOR)),
+) -> Predio:
+    predio = _predio_ou_404(db, predio_id)
+    campos = payload.model_dump(exclude_unset=True)
+    dados_antes = model_to_audit_dict(predio)
+
+    novo_cep = campos.get("cep", predio.cep)
+    novo_numero = campos.get("numero", predio.numero)
+    if novo_cep != predio.cep or novo_numero != predio.numero:
+        ja_existe = (
+            db.query(Predio)
+            .filter(Predio.cep == novo_cep, Predio.numero == novo_numero, Predio.id != predio.id)
+            .first()
+        )
+        if ja_existe is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Já existe um prédio cadastrado com este CEP e número.",
+            )
+
+    if "cep" in campos and campos["cep"] != predio.cep:
+        try:
+            endereco = consultar_cep(campos["cep"])
+        except CepInvalidoError as exc:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+        except CepNaoEncontradoError as exc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        except CepServicoIndisponivelError as exc:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        predio.logradouro = endereco.logradouro
+        predio.bairro = endereco.bairro
+        predio.cidade = endereco.cidade
+        predio.uf = endereco.uf
+
+    for campo, valor in campos.items():
+        setattr(predio, campo, valor)
+
+    db.add(predio)
+    db.flush()
+
+    registrar_log(
+        db,
+        usuario_id=current_user.id,
+        acao="UPDATE",
+        entidade="predios",
+        entidade_id=predio.id,
+        dados_antes=dados_antes,
+        dados_depois=model_to_audit_dict(predio),
+        ip_origem=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.commit()
+    db.refresh(predio)
+    return predio
 
 
 @router.put("/predios/{predio_id}/modulos", response_model=PredioRead)
