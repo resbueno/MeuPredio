@@ -3,6 +3,30 @@ export type TipoVeiculoEnum = "carro" | "moto" | "outro";
 export type CategoriaTicketEnum = "manutencao" | "duvida" | "solicitacao" | "outro";
 export type PrioridadeTicketEnum = "baixa" | "media" | "alta";
 export type StatusTicketEnum = "aberto" | "em_andamento" | "resolvido" | "cancelado";
+export type ModuloEnum =
+  | "veiculos"
+  | "financeiro"
+  | "avisos"
+  | "ocorrencias"
+  | "chamados"
+  | "reunioes"
+  | "entregas"
+  | "visitantes"
+  | "reservas"
+  | "equipe";
+
+export const TODOS_MODULOS: { value: ModuloEnum; label: string }[] = [
+  { value: "financeiro", label: "Financeiro (contas e transparência)" },
+  { value: "veiculos", label: "Veículos" },
+  { value: "avisos", label: "Avisos (mural e diretos)" },
+  { value: "ocorrencias", label: "Ocorrências" },
+  { value: "chamados", label: "Chamados" },
+  { value: "reunioes", label: "Reuniões" },
+  { value: "entregas", label: "Entregas" },
+  { value: "visitantes", label: "Visitantes" },
+  { value: "reservas", label: "Áreas comuns e reservas" },
+  { value: "equipe", label: "Equipe e prestadores de serviço" },
+];
 
 export interface Usuario {
   id: number;
@@ -19,6 +43,7 @@ export interface Usuario {
   updated_at: string;
   deleted_at: string | null;
   anonymized_at: string | null;
+  modulos_habilitados: ModuloEnum[];
 }
 
 export interface UsuarioCreateInput {
@@ -88,6 +113,7 @@ export interface Predio {
   bairro: string | null;
   cidade: string | null;
   uf: string | null;
+  modulos_habilitados: ModuloEnum[];
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -99,6 +125,7 @@ export interface PredioCreateInput {
   numero: string;
   complemento?: string | null;
   unidades?: { bloco: string; numero: string }[];
+  modulos_habilitados?: ModuloEnum[];
 }
 
 export interface PredioIdentificado {

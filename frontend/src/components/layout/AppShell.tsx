@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { temPapel } from "../../auth/roles";
-import type { RoleEnum } from "../../api/types";
+import type { ModuloEnum, RoleEnum } from "../../api/types";
 import logoIcon from "../../assets/logo-icon.png";
 import { NotificacaoBell } from "./NotificacaoBell";
 import { useDemo } from "../landing/demo/DemoContext";
@@ -12,6 +12,7 @@ interface NavItem {
   to: string;
   label: string;
   roles?: RoleEnum[];
+  modulo?: ModuloEnum;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -19,18 +20,23 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/predios", label: "Prédios", roles: ["administrador"] },
   { to: "/usuarios", label: "Usuários", roles: ["administrador", "sindico"] },
   { to: "/unidades", label: "Unidades" },
-  { to: "/veiculos", label: "Veículos" },
-  { to: "/despesas", label: "Contas", roles: ["administrador", "sindico"] },
-  { to: "/transparencia", label: "Transparência" },
-  { to: "/avisos", label: "Avisos Gerais" },
-  { to: "/avisos-diretos", label: "Avisos Diretos", roles: ["administrador", "sindico", "morador", "proprietario"] },
-  { to: "/ocorrencias", label: "Ocorrências" },
-  { to: "/tickets", label: "Chamados" },
-  { to: "/reunioes", label: "Reuniões" },
-  { to: "/entregas", label: "Entregas" },
-  { to: "/visitantes", label: "Visitantes", roles: ["administrador", "sindico", "zelador"] },
-  { to: "/reservas", label: "Reservas" },
-  { to: "/equipe", label: "Equipe e Serviços", roles: ["sindico", "zelador"] },
+  { to: "/veiculos", label: "Veículos", modulo: "veiculos" },
+  { to: "/despesas", label: "Contas", roles: ["administrador", "sindico"], modulo: "financeiro" },
+  { to: "/transparencia", label: "Transparência", modulo: "financeiro" },
+  { to: "/avisos", label: "Avisos Gerais", modulo: "avisos" },
+  {
+    to: "/avisos-diretos",
+    label: "Avisos Diretos",
+    roles: ["administrador", "sindico", "morador", "proprietario"],
+    modulo: "avisos",
+  },
+  { to: "/ocorrencias", label: "Ocorrências", modulo: "ocorrencias" },
+  { to: "/tickets", label: "Chamados", modulo: "chamados" },
+  { to: "/reunioes", label: "Reuniões", modulo: "reunioes" },
+  { to: "/entregas", label: "Entregas", modulo: "entregas" },
+  { to: "/visitantes", label: "Visitantes", roles: ["administrador", "sindico", "zelador"], modulo: "visitantes" },
+  { to: "/reservas", label: "Reservas", modulo: "reservas" },
+  { to: "/equipe", label: "Equipe e Serviços", roles: ["sindico", "zelador"], modulo: "equipe" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -51,6 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const visibleItems = NAV_ITEMS.filter(
     (item) =>
       (!item.roles || temPapel(user, ...item.roles)) &&
+      (!item.modulo || !user || user.modulos_habilitados.includes(item.modulo)) &&
       (!demo || demo.rotasDisponiveis.includes(item.to))
   );
   const rotuloSair = demo ? "Sair da prévia" : "Sair";

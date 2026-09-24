@@ -12,6 +12,27 @@ class RoleEnum(str, enum.Enum):
     ADMINISTRADOR = "administrador"
 
 
+class ModuloEnum(str, enum.Enum):
+    """Módulos opcionais que o administrador da plataforma pode
+    habilitar/desabilitar por prédio (ver `Predio.modulos_habilitados`).
+    Cadastro/usuários/unidades e afins são o núcleo do sistema e não entram
+    aqui - sempre disponíveis, em todo prédio."""
+
+    VEICULOS = "veiculos"
+    FINANCEIRO = "financeiro"
+    AVISOS = "avisos"
+    OCORRENCIAS = "ocorrencias"
+    CHAMADOS = "chamados"
+    REUNIOES = "reunioes"
+    ENTREGAS = "entregas"
+    VISITANTES = "visitantes"
+    RESERVAS = "reservas"
+    EQUIPE = "equipe"
+
+
+TODOS_MODULOS: list[str] = [m.value for m in ModuloEnum]
+
+
 class TipoVeiculoEnum(str, enum.Enum):
     CARRO = "carro"
     MOTO = "moto"

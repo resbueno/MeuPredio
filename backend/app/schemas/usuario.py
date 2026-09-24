@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
-from app.models.enums import RoleEnum
+from app.models.enums import TODOS_MODULOS, RoleEnum
 
 
 class UsuarioBase(BaseModel):
@@ -129,6 +129,11 @@ class UsuarioRead(BaseModel):
     updated_at: datetime
     deleted_at: datetime | None
     anonymized_at: datetime | None
+    # Módulos habilitados do prédio deste usuário - o front usa isto para
+    # decidir o que mostrar no menu (ver `require_modulo` no backend, que é
+    # quem de fato garante o acesso). ADMINISTRADOR não tem prédio e enxerga
+    # todos os módulos (é quem os configura para os demais).
+    modulos_habilitados: list[str] = Field(default_factory=lambda: list(TODOS_MODULOS))
 
     @model_validator(mode="before")
     @classmethod
@@ -140,5 +145,8 @@ class UsuarioRead(BaseModel):
             data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
             data["unidade_ids"] = [u.id for u in unidades]
             data["papeis_extra"] = [p.role for p in obj.papeis_extra]
+            data["modulos_habilitados"] = (
+                obj.predio.modulos_habilitados if obj.predio is not None else list(TODOS_MODULOS)
+            )
             return data
         return obj

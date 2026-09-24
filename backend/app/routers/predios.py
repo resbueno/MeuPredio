@@ -30,6 +30,7 @@ from app.schemas.predio import (
     PredioIdentificarResponse,
     PredioIntegracaoOcrRequest,
     PredioIntegracaoOcrStatus,
+    PredioModulosUpdate,
     PredioRead,
     UnidadeConviteInfo,
 )
@@ -90,6 +91,7 @@ def criar_predio(
         bairro=endereco.bairro,
         cidade=endereco.cidade,
         uf=endereco.uf,
+        modulos_habilitados=[m.value for m in payload.modulos_habilitados],
         created_by=current_user.id,
     )
     db.add(predio)
@@ -140,6 +142,38 @@ def obter_predio(
     current_user: Usuario = Depends(require_role(RoleEnum.ADMINISTRADOR)),
 ) -> Predio:
     return _predio_ou_404(db, predio_id)
+
+
+@router.put("/predios/{predio_id}/modulos", response_model=PredioRead)
+def atualizar_modulos(
+    predio_id: int,
+    payload: PredioModulosUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(RoleEnum.ADMINISTRADOR)),
+) -> Predio:
+    """Habilita/desabilita módulos de um prédio - substitui a lista inteira
+    (não incremental). Só o administrador da plataforma decide o que cada
+    prédio contratou."""
+    predio = _predio_ou_404(db, predio_id)
+
+    predio.modulos_habilitados = [m.value for m in payload.modulos_habilitados]
+    db.add(predio)
+    db.flush()
+
+    registrar_log(
+        db,
+        usuario_id=current_user.id,
+        acao="UPDATE",
+        entidade="predios",
+        entidade_id=predio.id,
+        dados_depois={"modulos_habilitados": predio.modulos_habilitados},
+        ip_origem=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.commit()
+    db.refresh(predio)
+    return predio
 
 
 @router.post("/predios/{predio_id}/convite", response_model=PredioConviteRead)

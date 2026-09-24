@@ -3,10 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sqlalchemy import String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.models.base import AuditMixin, SoftDeleteMixin, TimestampMixin
+from app.models.enums import TODOS_MODULOS
 
 if TYPE_CHECKING:
     from app.models.predio_convite import PredioConvite
@@ -45,6 +47,14 @@ class Predio(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
     # em repouso via app/core/crypto.py - nunca fica em texto plano no banco
     # nem é devolvida em nenhuma resposta da API (ver PredioIntegracaoOcrStatus).
     groq_api_key_cifrada: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Lista de `ModuloEnum.value` habilitados para este prédio - controla o
+    # que aparece no menu e o que os endpoints correspondentes aceitam (ver
+    # `require_modulo` em app/core/dependencies.py). Novo prédio nasce com
+    # todos os módulos habilitados; o administrador da plataforma desliga o
+    # que não for contratado.
+    modulos_habilitados: Mapped[list[str]] = mapped_column(
+        JSONB, nullable=False, default=list(TODOS_MODULOS)
+    )
 
     unidades: Mapped[list["Unidade"]] = relationship("Unidade", back_populates="predio")
     usuarios: Mapped[list["Usuario"]] = relationship(

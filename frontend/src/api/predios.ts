@@ -68,3 +68,10 @@ export async function configurarIntegracaoOcr(
 export async function removerIntegracaoOcr(predioId: number): Promise<void> {
   await apiClient.delete(`/predios/${predioId}/integracao-ocr`);
 }
+
+export async function atualizarModulos(predioId: number, modulos: string[]): Promise<Predio> {
+  const { data } = await apiClient.put<Predio>(`/predios/${predioId}/modulos`, {
+    modulos_habilitados: modulos,
+  });
+  return data;
+}

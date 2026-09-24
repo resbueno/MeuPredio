@@ -5,8 +5,8 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
 import axios from "axios";
 import { AppShell } from "../../components/layout/AppShell";
-import { createPredio, gerarConvite, listPredios } from "../../api/predios";
-import type { Predio } from "../../api/types";
+import { atualizarModulos, createPredio, gerarConvite, listPredios } from "../../api/predios";
+import { TODOS_MODULOS, type ModuloEnum, type Predio } from "../../api/types";
 
 const predioSchema = z.object({
   nome: z.string().min(2, "Informe o nome do prédio."),
@@ -16,6 +16,7 @@ const predioSchema = z.object({
   unidades: z
     .array(z.object({ bloco: z.string().min(1, "Bloco obrigatório."), numero: z.string().min(1, "Número obrigatório.") }))
     .default([]),
+  modulos_habilitados: z.array(z.string()).default(TODOS_MODULOS.map((m) => m.value)),
 });
 
 type PredioFormValues = z.infer<typeof predioSchema>;
@@ -32,6 +33,15 @@ export function PrediosPage() {
 
   const { data: predios, isLoading } = useQuery({ queryKey: ["predios"], queryFn: listPredios });
 
+  const valoresIniciais = {
+    nome: "",
+    cep: "",
+    numero: "",
+    complemento: "",
+    unidades: [{ bloco: "", numero: "" }],
+    modulos_habilitados: TODOS_MODULOS.map((m) => m.value),
+  };
+
   const {
     register,
     control,
@@ -40,7 +50,7 @@ export function PrediosPage() {
     formState: { errors, isSubmitting },
   } = useForm<PredioFormValues>({
     resolver: zodResolver(predioSchema),
-    defaultValues: { nome: "", cep: "", numero: "", complemento: "", unidades: [{ bloco: "", numero: "" }] },
+    defaultValues: valoresIniciais,
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "unidades" });
@@ -49,7 +59,7 @@ export function PrediosPage() {
     mutationFn: createPredio,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["predios"] });
-      reset({ nome: "", cep: "", numero: "", complemento: "", unidades: [{ bloco: "", numero: "" }] });
+      reset(valoresIniciais);
       setErroCriacao(null);
     },
     onError: (err) => {
@@ -70,6 +80,14 @@ export function PrediosPage() {
     },
   });
 
+  const modulosMutation = useMutation({
+    mutationFn: ({ predioId, modulos }: { predioId: number; modulos: string[] }) =>
+      atualizarModulos(predioId, modulos),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["predios"] });
+    },
+  });
+
   function onSubmit(values: PredioFormValues): void {
     setErroCriacao(null);
     createMutation.mutate({
@@ -78,7 +96,18 @@ export function PrediosPage() {
       numero: values.numero,
       complemento: values.complemento || undefined,
       unidades: values.unidades.filter((u) => u.bloco && u.numero),
+      modulos_habilitados: values.modulos_habilitados as ModuloEnum[],
     });
+  }
+
+  function alternarModulo(predio: Predio, modulo: ModuloEnum): void {
+    const ativos = new Set(predio.modulos_habilitados);
+    if (ativos.has(modulo)) {
+      ativos.delete(modulo);
+    } else {
+      ativos.add(modulo);
+    }
+    modulosMutation.mutate({ predioId: predio.id, modulos: Array.from(ativos) });
   }
 
   async function copiarLink(link: string): Promise<void> {
@@ -177,6 +206,25 @@ export function PrediosPage() {
           </button>
         </div>
 
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600">
+            Módulos habilitados
+          </label>
+          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+            {TODOS_MODULOS.map((modulo) => (
+              <label key={modulo.value} className="flex items-center gap-2 text-xs text-slate-600">
+                <input
+                  type="checkbox"
+                  value={modulo.value}
+                  className="h-4 w-4 rounded border-slate-300"
+                  {...register("modulos_habilitados")}
+                />
+                {modulo.label}
+              </label>
+            ))}
+          </div>
+        </div>
+
         {erroCriacao && <p className="text-sm text-red-600">{erroCriacao}</p>}
 
         <button
@@ -210,6 +258,24 @@ export function PrediosPage() {
                 >
                   Gerar link de autocadastro
                 </button>
+              </div>
+
+              <div className="mt-3 rounded-lg bg-slate-50 p-2">
+                <p className="mb-1.5 text-xs font-semibold text-slate-600">Módulos habilitados</p>
+                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                  {TODOS_MODULOS.map((modulo) => (
+                    <label key={modulo.value} className="flex items-center gap-2 text-xs text-slate-600">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-slate-300"
+                        checked={predio.modulos_habilitados.includes(modulo.value)}
+                        disabled={modulosMutation.isPending}
+                        onChange={() => alternarModulo(predio, modulo.value)}
+                      />
+                      {modulo.label}
+                    </label>
+                  ))}
+                </div>
               </div>
 
               {token && (

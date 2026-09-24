@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db_session
 from app.core.security import decode_access_token
-from app.models.enums import RoleEnum
+from app.models.enums import ModuloEnum, RoleEnum
 from app.models.usuario import Usuario
 
 # tokenUrl aponta para o endpoint de login — usado apenas para gerar a UI do
@@ -91,6 +91,28 @@ def require_role(*roles: RoleEnum):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Você não tem permissão para executar esta ação.",
+            )
+        return current_user
+
+    return _dependency
+
+
+def require_modulo(modulo: ModuloEnum):
+    """Dependency factory de módulos opcionais por prédio.
+
+    Uso: `dependencies=[Depends(require_modulo(ModuloEnum.FINANCEIRO))]` no
+    `include_router` (ver app/main.py) - todo o router fica atrás do módulo.
+    `ADMINISTRADOR` (papel global, sem prédio) sempre passa, já que gerencia
+    a plataforma inteira, não um prédio específico."""
+
+    def _dependency(current_user: Usuario = Depends(get_current_user)) -> Usuario:
+        if current_user.role == RoleEnum.ADMINISTRADOR:
+            return current_user
+        predio = current_user.predio
+        if predio is None or modulo.value not in predio.modulos_habilitados:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Este módulo não está habilitado para o seu prédio.",
             )
         return current_user
 

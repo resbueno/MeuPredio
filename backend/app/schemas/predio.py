@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.core.viacep import normalizar_cep
+from app.models.enums import TODOS_MODULOS, ModuloEnum
 
 
 class UnidadeInicial(BaseModel):
@@ -21,6 +22,7 @@ class PredioCreate(BaseModel):
     numero: str = Field(min_length=1, max_length=20)
     complemento: str | None = Field(default=None, max_length=100)
     unidades: list[UnidadeInicial] = Field(default_factory=list)
+    modulos_habilitados: list[ModuloEnum] = Field(default_factory=lambda: list(TODOS_MODULOS))
 
     @field_validator("cep")
     @classmethod
@@ -40,9 +42,17 @@ class PredioRead(BaseModel):
     bairro: str | None
     cidade: str | None
     uf: str | None
+    modulos_habilitados: list[str]
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None
+
+
+class PredioModulosUpdate(BaseModel):
+    """Payload de `PUT /predios/{id}/modulos`: substitui por completo a
+    lista de módulos habilitados do prédio (não é um patch incremental)."""
+
+    modulos_habilitados: list[ModuloEnum]
 
 
 class PredioIdentificarRequest(BaseModel):

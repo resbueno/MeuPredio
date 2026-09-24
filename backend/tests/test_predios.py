@@ -112,6 +112,49 @@ def test_gerar_convite_e_fluxo_de_autocadastro(client, db_session):
         },
     )
     assert cadastro.status_code == 201
+
+
+def test_novo_predio_nasce_com_todos_os_modulos_habilitados(client, db_session):
+    admin = make_user(db_session, email="admin.p5@test.local", role=RoleEnum.ADMINISTRADOR)
+    response = client.post(
+        "/predios",
+        json={"nome": "Edificio Modular", "cep": "01310-100", "numero": "2000"},
+        headers=auth_header(admin),
+    )
+    assert response.status_code == 201
+    assert "financeiro" in response.json()["modulos_habilitados"]
+    assert "visitantes" in response.json()["modulos_habilitados"]
+
+
+def test_sindico_nao_pode_alterar_modulos(client, db_session):
+    predio = make_predio(db_session)
+    sindico = make_user(db_session, email="sindico.p5@test.local", role=RoleEnum.SINDICO, predio=predio)
+    response = client.put(
+        f"/predios/{predio.id}/modulos",
+        json={"modulos_habilitados": ["financeiro"]},
+        headers=auth_header(sindico),
+    )
+    assert response.status_code == 403
+
+
+def test_admin_desabilita_modulo_e_bloqueia_acesso_do_predio(client, db_session):
+    admin = make_user(db_session, email="admin.p6@test.local", role=RoleEnum.ADMINISTRADOR)
+    predio = make_predio(db_session)
+    sindico = make_user(db_session, email="sindico.p6@test.local", role=RoleEnum.SINDICO, predio=predio)
+
+    resposta = client.put(
+        f"/predios/{predio.id}/modulos",
+        json={"modulos_habilitados": ["financeiro"]},
+        headers=auth_header(admin),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["modulos_habilitados"] == ["financeiro"]
+
+    bloqueado = client.get("/visitantes", headers=auth_header(sindico))
+    assert bloqueado.status_code == 403
+
+    liberado = client.get("/despesas", headers=auth_header(sindico))
+    assert liberado.status_code != 403
     novo_usuario = cadastro.json()
     assert novo_usuario["predio_id"] == predio.id
     assert novo_usuario["unidade_ids"] == [unidade.id]
