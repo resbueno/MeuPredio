@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.core.viacep import normalizar_cep
-from app.models.enums import TODOS_MODULOS, ModuloEnum
+from app.models.enums import ModuloEnum
 
 
 class UnidadeInicial(BaseModel):
@@ -22,7 +22,11 @@ class PredioCreate(BaseModel):
     numero: str = Field(min_length=1, max_length=20)
     complemento: str | None = Field(default=None, max_length=100)
     unidades: list[UnidadeInicial] = Field(default_factory=list)
-    modulos_habilitados: list[ModuloEnum] = Field(default_factory=lambda: list(TODOS_MODULOS))
+    # list(ModuloEnum), não TODOS_MODULOS (que é list[str]) - default_factory
+    # não passa pela coerção normal do Pydantic, então precisa já devolver
+    # instâncias de ModuloEnum (com `.value`), não strings soltas, ou
+    # `criar_predio` quebra ao tentar `m.value` em cada item da lista.
+    modulos_habilitados: list[ModuloEnum] = Field(default_factory=lambda: list(ModuloEnum))
 
     @field_validator("cep")
     @classmethod

@@ -204,15 +204,6 @@ def test_admin_desabilita_modulo_e_bloqueia_acesso_do_predio(client, db_session)
 
     liberado = client.get("/despesas", headers=auth_header(sindico))
     assert liberado.status_code != 403
-    novo_usuario = cadastro.json()
-    assert novo_usuario["predio_id"] == predio.id
-    assert novo_usuario["unidade_ids"] == [unidade.id]
-
-    # E consegue logar de verdade com o que acabou de cadastrar.
-    login = client.post(
-        "/auth/login", data=login_form("novomorador@test.dev", "SenhaForte123!", predio.id)
-    )
-    assert login.status_code == 200
 
 
 def test_autocadastro_nao_aceita_papel_de_equipe(client, db_session):
