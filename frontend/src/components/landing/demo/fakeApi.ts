@@ -14,6 +14,7 @@ import type {
   DespesaRecorrente,
   Entrega,
   Fornecedor,
+  ModuloEnum,
   Notificacao,
   Ocorrencia,
   Reserva,
@@ -23,6 +24,9 @@ import type {
   Usuario,
   Visitante,
 } from "../../../api/types";
+import { TODOS_MODULOS } from "../../../api/types";
+
+const MODULOS_DEMO: ModuloEnum[] = TODOS_MODULOS.map((m) => m.value);
 
 type Json = Record<string, unknown>;
 type Resultado = { status?: number; data?: unknown };
@@ -56,6 +60,7 @@ export function usuarioDemo(): Usuario {
     updated_at: iso(-1),
     deleted_at: null,
     anonymized_at: null,
+    modulos_habilitados: MODULOS_DEMO,
   };
 }
 
