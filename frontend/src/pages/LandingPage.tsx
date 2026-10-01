@@ -142,30 +142,40 @@ export function LandingPage() {
   }
 
   return (
-    <div className="relative isolate min-h-screen bg-white">
-      {/* Fundo da tela de login com as cores invertidas (base clara, glows em âmbar) e bem translúcido. */}
+    <div className="relative isolate min-h-screen bg-white font-nunito">
+      {/* Fundo em degradê verde-para-branco, no espírito do hero da spec. */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[#e69e12]/20 blur-3xl" />
-        <div className="absolute -bottom-24 -right-16 h-80 w-80 rounded-full bg-[#e69e12]/15 blur-3xl" />
+        <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[var(--duo-green)]/15 blur-3xl" />
+        <div className="absolute -bottom-24 -right-16 h-80 w-80 rounded-full bg-[var(--duo-blue)]/10 blur-3xl" />
       </div>
 
       {/* Navbar */}
-      <header className="sticky top-0 z-20 border-b border-slate-100 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+      <header className="sticky top-0 z-20 h-16 border-b border-[var(--duo-border-color)] bg-white/90 backdrop-blur">
+        <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <img src={logoIcon} alt="" className="h-8 w-auto" />
-            <span className="text-lg font-bold tracking-tight text-ink">
-              Meu<span className="text-brand-600">Prédio</span>
+            <span className="font-feather text-lg tracking-tight text-[var(--duo-dark-blue)]">
+              Meu<span className="text-[var(--duo-green)]">Prédio</span>
             </span>
           </div>
-          <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
-            <a href="#recursos" className="hover:text-ink">
+          <nav className="hidden items-center gap-1 text-[13px] font-bold uppercase tracking-[0.5px] text-[var(--duo-gray-light)] md:flex">
+            <a
+              href="#recursos"
+              className="rounded-md px-3 py-2 transition-colors hover:bg-[var(--duo-green)]/10 hover:text-[var(--duo-green)]"
+            >
               Recursos
             </a>
-            <a href="#como-funciona" className="hover:text-ink">
+            <a
+              href="#como-funciona"
+              className="rounded-md px-3 py-2 transition-colors hover:bg-[var(--duo-green)]/10 hover:text-[var(--duo-green)]"
+            >
               Como funciona
             </a>
-            <a href="#contato" onClick={() => setMostrarFormularioContato(true)} className="hover:text-ink">
+            <a
+              href="#contato"
+              onClick={() => setMostrarFormularioContato(true)}
+              className="rounded-md px-3 py-2 transition-colors hover:bg-[var(--duo-green)]/10 hover:text-[var(--duo-green)]"
+            >
               Contato
             </a>
           </nav>
@@ -173,7 +183,7 @@ export function LandingPage() {
             <button
               type="button"
               onClick={irParaLogin}
-              className="hidden items-center gap-1.5 rounded-lg bg-ink px-3.5 py-2 text-sm font-medium text-white hover:bg-ink/90 sm:flex"
+              className="hidden items-center gap-1.5 rounded-lg border-2 border-[var(--duo-border-color)] px-3.5 py-2 text-sm font-bold text-[var(--duo-dark-blue)] hover:bg-slate-50 sm:flex"
             >
               <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5">
                 <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="2" />
@@ -184,7 +194,7 @@ export function LandingPage() {
             <button
               type="button"
               onClick={() => setMostrarDemo(true)}
-              className="rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+              className="btn-duo-3d [--btn-duo-shadow:var(--duo-green-shadow)] h-9 rounded-[10px] bg-[var(--duo-green)] px-4 text-[13px] font-bold uppercase tracking-wide text-white hover:bg-[var(--duo-green-hover)]"
             >
               Conhecer agora
             </button>
@@ -196,17 +206,17 @@ export function LandingPage() {
       <section>
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:items-center lg:py-20">
           <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--duo-green)]/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[var(--duo-green-hover)]">
               <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5">
                 <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
                 <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
               Gestão condominial em um só lugar
             </span>
-            <h1 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-ink sm:text-4xl lg:text-[2.75rem]">
-              A gestão do seu prédio, mais simples e inteligente.
+            <h1 className="mt-4 font-feather text-3xl leading-tight tracking-tight text-[var(--duo-dark-blue)] sm:text-4xl lg:text-[52px]">
+              A gestão do seu prédio, <span className="text-[var(--duo-green)]">mais simples e inteligente</span>.
             </h1>
-            <p className="mt-4 max-w-md text-sm leading-relaxed text-slate-500 sm:text-base">
+            <p className="mt-4 max-w-[520px] text-base leading-[1.5] text-[var(--duo-gray-light)] sm:text-[17px]">
               Portal da transparência, boletos com leitura por IA, avisos, reuniões digitais,
               reserva de espaços e portaria com controle de visitantes - tudo em um só sistema,
               para uma rotina mais organizada, segura e eficiente.
@@ -215,7 +225,7 @@ export function LandingPage() {
               <button
                 type="button"
                 onClick={irParaLogin}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-600/25 hover:bg-brand-700"
+                className="btn-duo-3d [--btn-duo-shadow:var(--duo-green-shadow)] inline-flex h-12 items-center gap-1.5 rounded-xl bg-[var(--duo-green)] px-6 text-[15px] font-bold uppercase tracking-wide text-white hover:bg-[var(--duo-green-hover)]"
               >
                 <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
                   <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -224,7 +234,7 @@ export function LandingPage() {
               </button>
               <a
                 href="#como-funciona"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:bg-slate-50"
+                className="btn-duo-3d [--btn-duo-shadow:var(--duo-border-color)] inline-flex h-12 items-center gap-1.5 rounded-xl border-2 border-[var(--duo-border-color)] bg-white px-6 text-[15px] font-bold uppercase tracking-wide text-[var(--duo-blue)] hover:bg-slate-50"
               >
                 <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
                   <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
@@ -254,49 +264,56 @@ export function LandingPage() {
 
       {/* Recursos */}
       <section id="recursos" className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">Recursos essenciais</p>
-        <h2 className="mt-2 text-2xl font-bold text-ink sm:text-3xl">
+        <p className="text-[11px] font-extrabold uppercase tracking-[2px] text-[var(--duo-nav-text)]">
+          Recursos essenciais
+        </p>
+        <h2 className="mt-2 font-feather text-2xl text-[var(--duo-dark-blue)] sm:text-3xl">
           Tudo organizado para a rotina fluir melhor.
         </h2>
-        <p className="mt-2 max-w-xl text-sm text-slate-500 sm:text-base">
+        <p className="mt-2 max-w-xl text-sm text-[var(--duo-gray-light)] sm:text-base">
           Uma experiência digital clara para administradores, síndicos e moradores acompanharem o
           que importa.
         </p>
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {RECURSOS.map((recurso) => (
-            <div key={recurso.titulo} className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+            <div
+              key={recurso.titulo}
+              className="rounded-2xl border-2 border-[var(--duo-border-color)] bg-white p-5 transition-all hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)]"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--duo-green)]/10 text-[var(--duo-green)]">
                 <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
                   {recurso.icone}
                 </svg>
               </div>
-              <h3 className="mt-3 text-sm font-semibold text-ink">{recurso.titulo}</h3>
-              <p className="mt-1 text-sm text-slate-500">{recurso.descricao}</p>
+              <h3 className="mt-3 text-sm font-bold text-[var(--duo-gray-text)]">{recurso.titulo}</h3>
+              <p className="mt-1 text-sm text-[var(--duo-gray-light)]">{recurso.descricao}</p>
             </div>
           ))}
         </div>
 
-        <p className="mt-8 text-center text-sm font-medium text-slate-500">
+        <p className="mt-8 text-center text-sm font-medium text-[var(--duo-gray-light)]">
           Feito para condomínios de qualquer porte — de pequenos prédios residenciais a médios e
           grandes complexos.
         </p>
       </section>
 
       {/* Visão unificada */}
-      <section id="como-funciona" className="bg-brand-50/50 py-16">
+      <section id="como-funciona" className="bg-[var(--duo-green)]/5 py-16">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:items-center">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">Visão unificada</p>
-            <h2 className="mt-2 text-2xl font-bold text-ink sm:text-3xl">
+            <p className="text-[11px] font-extrabold uppercase tracking-[2px] text-[var(--duo-nav-text)]">
+              Visão unificada
+            </p>
+            <h2 className="mt-2 font-feather text-2xl text-[var(--duo-dark-blue)] sm:text-3xl">
               Tenha o controle do seu prédio em poucos cliques.
             </h2>
-            <p className="mt-3 max-w-md text-sm text-slate-500 sm:text-base">
+            <p className="mt-3 max-w-md text-sm text-[var(--duo-gray-light)] sm:text-base">
               Uma visão geral feita para tomar decisões com mais agilidade, sem perder o contexto
               da operação.
             </p>
-            <p className="mt-4 flex items-center gap-2 text-sm font-medium text-ink">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white">
+            <p className="mt-4 flex items-center gap-2 text-sm font-medium text-[var(--duo-gray-text)]">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--duo-green)] text-white">
                 <svg viewBox="0 0 24 24" fill="none" className="h-3 w-3">
                   <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -305,13 +322,13 @@ export function LandingPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="rounded-2xl border-2 border-[var(--duo-border-color)] bg-white p-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-[var(--duo-border-color)] pb-3">
               <div className="flex items-center gap-2">
                 <img src={logoIcon} alt="" className="h-6 w-auto" />
-                <span className="text-sm font-bold text-ink">Meu Prédio</span>
+                <span className="text-sm font-bold text-[var(--duo-dark-blue)]">Meu Prédio</span>
               </div>
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-slate-400">
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-[var(--duo-nav-text)]">
                 <path
                   d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"
                   stroke="currentColor"
@@ -324,30 +341,34 @@ export function LandingPage() {
 
             <div className="mt-3 grid grid-cols-3 gap-2">
               <div className="rounded-xl bg-slate-50 p-2.5">
-                <p className="text-[11px] text-slate-500">Moradores</p>
-                <p className="text-lg font-bold text-ink">128</p>
-                <p className="text-[10px] text-emerald-600">Ativos</p>
+                <p className="text-[11px] text-[var(--duo-gray-light)]">Moradores</p>
+                <p className="text-lg font-bold text-[var(--duo-dark-blue)]">128</p>
+                <p className="text-[10px] font-semibold text-[var(--duo-green)]">Ativos</p>
               </div>
               <div className="rounded-xl bg-slate-50 p-2.5">
-                <p className="text-[11px] text-slate-500">Manutenções</p>
-                <p className="text-lg font-bold text-ink">06</p>
-                <p className="text-[10px] text-amber-600">Em andamento</p>
+                <p className="text-[11px] text-[var(--duo-gray-light)]">Manutenções</p>
+                <p className="text-lg font-bold text-[var(--duo-dark-blue)]">06</p>
+                <p className="text-[10px] font-semibold text-[var(--duo-orange)]">Em andamento</p>
               </div>
               <div className="rounded-xl bg-slate-50 p-2.5">
-                <p className="text-[11px] text-slate-500">Reservas</p>
-                <p className="text-lg font-bold text-ink">05</p>
-                <p className="text-[10px] text-brand-600">Este mês</p>
+                <p className="text-[11px] text-[var(--duo-gray-light)]">Reservas</p>
+                <p className="text-lg font-bold text-[var(--duo-dark-blue)]">05</p>
+                <p className="text-[10px] font-semibold text-[var(--duo-blue)]">Este mês</p>
               </div>
             </div>
 
             <div className="mt-3 rounded-xl bg-slate-50 p-3">
-              <p className="text-[11px] font-medium text-slate-500">Atividade do condomínio</p>
+              <p className="text-[11px] font-medium text-[var(--duo-gray-light)]">Atividade do condomínio</p>
               <div className="mt-2 flex h-14 items-end gap-1.5">
                 {[40, 55, 90, 60, 75, 95, 70].map((altura, i) => (
                   <div
                     key={i}
-                    className={`w-full rounded-t-sm ${i % 2 === 0 ? "bg-brand-200" : "bg-brand-600"}`}
-                    style={{ height: `${altura}%` }}
+                    className="w-full rounded-t-sm"
+                    style={{
+                      height: `${altura}%`,
+                      backgroundColor: i % 2 === 0 ? "var(--duo-green)" : "var(--duo-green-hover)",
+                      opacity: i % 2 === 0 ? 0.45 : 1,
+                    }}
                   />
                 ))}
               </div>
@@ -355,15 +376,15 @@ export function LandingPage() {
 
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div className="rounded-xl bg-slate-50 p-3">
-                <p className="text-[11px] font-medium text-slate-500">Avisos recentes</p>
-                <ul className="mt-1.5 space-y-1 text-[11px] text-slate-600">
+                <p className="text-[11px] font-medium text-[var(--duo-gray-light)]">Avisos recentes</p>
+                <ul className="mt-1.5 space-y-1 text-[11px] text-[var(--duo-gray-text)]">
                   <li>• Limpeza da garagem</li>
                   <li>• Reunião confirmada</li>
                 </ul>
               </div>
               <div className="rounded-xl bg-slate-50 p-3">
-                <p className="text-[11px] font-medium text-slate-500">Portaria</p>
-                <ul className="mt-1.5 space-y-1 text-[11px] text-slate-600">
+                <p className="text-[11px] font-medium text-[var(--duo-gray-light)]">Portaria</p>
+                <ul className="mt-1.5 space-y-1 text-[11px] text-[var(--duo-gray-text)]">
                   <li>• 2 visitantes hoje</li>
                   <li>• 1 encomenda recebida</li>
                 </ul>
@@ -375,14 +396,14 @@ export function LandingPage() {
 
       {/* CTA final */}
       <section id="contato" className="scroll-mt-20 px-4 py-16 sm:px-6">
-        <div className="mx-auto max-w-5xl rounded-3xl bg-ink px-6 py-14 text-center shadow-xl sm:px-12">
-          <p className="text-xs font-semibold uppercase tracking-wider text-brand-300">
+        <div className="mx-auto max-w-5xl rounded-3xl bg-[var(--duo-dark-blue)] px-6 py-14 text-center shadow-xl sm:px-12">
+          <p className="text-[11px] font-extrabold uppercase tracking-[2px] text-white/35">
             Simplifique a gestão
           </p>
-          <h2 className="mx-auto mt-3 max-w-2xl text-2xl font-bold text-white sm:text-3xl">
+          <h2 className="mx-auto mt-3 max-w-2xl font-feather text-2xl text-white sm:text-3xl">
             Tudo o que o seu prédio precisa, em um só lugar.
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-slate-300 sm:text-base">
+          <p className="mx-auto mt-3 max-w-xl text-sm text-white/60 sm:text-base">
             Organize a rotina, mantenha todos informados e tenha uma gestão mais tranquila todos os
             dias.
           </p>
@@ -390,7 +411,7 @@ export function LandingPage() {
             <button
               type="button"
               onClick={() => setMostrarFormularioContato(true)}
-              className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:bg-slate-100"
+              className="btn-duo-3d [--btn-duo-shadow:#88879f] mt-6 inline-flex h-12 items-center gap-1.5 rounded-xl bg-white px-6 text-[15px] font-bold uppercase tracking-wide text-[var(--duo-dark-blue)] hover:bg-[#c8f040]"
             >
               <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
                 <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -407,7 +428,7 @@ export function LandingPage() {
                   placeholder="Seu nome"
                   value={contatoForm.nome}
                   onChange={(event) => setContatoForm((f) => ({ ...f, nome: event.target.value }))}
-                  className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-white/40 focus:outline-none"
+                  className="w-full rounded-lg border-2 border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-[var(--duo-blue)] focus:outline-none"
                 />
                 <input
                   required
@@ -415,37 +436,37 @@ export function LandingPage() {
                   placeholder="Seu e-mail"
                   value={contatoForm.email}
                   onChange={(event) => setContatoForm((f) => ({ ...f, email: event.target.value }))}
-                  className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-white/40 focus:outline-none"
+                  className="w-full rounded-lg border-2 border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-[var(--duo-blue)] focus:outline-none"
                 />
               </div>
               <input
                 placeholder="Telefone (opcional)"
                 value={contatoForm.telefone}
                 onChange={(event) => setContatoForm((f) => ({ ...f, telefone: event.target.value }))}
-                className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-white/40 focus:outline-none"
+                className="w-full rounded-lg border-2 border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-[var(--duo-blue)] focus:outline-none"
               />
               <textarea
                 rows={3}
                 placeholder="Conte um pouco sobre o seu condomínio (opcional)"
                 value={contatoForm.mensagem}
                 onChange={(event) => setContatoForm((f) => ({ ...f, mensagem: event.target.value }))}
-                className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-white/40 focus:outline-none"
+                className="w-full rounded-lg border-2 border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-[var(--duo-blue)] focus:outline-none"
               />
               {contatoErro && (
-                <p className="text-sm text-red-300">Não foi possível enviar. Tente novamente.</p>
+                <p className="text-sm text-[var(--duo-red)]">Não foi possível enviar. Tente novamente.</p>
               )}
               <div className="flex justify-center gap-2">
                 <button
                   type="submit"
                   disabled={contatoEnviando}
-                  className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:bg-slate-100 disabled:opacity-60"
+                  className="rounded-lg bg-white px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-[var(--duo-dark-blue)] hover:bg-slate-100 disabled:opacity-60"
                 >
                   {contatoEnviando ? "Enviando..." : "Enviar"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setMostrarFormularioContato(false)}
-                  className="rounded-lg border border-white/30 px-5 py-2.5 text-sm font-medium text-white hover:bg-white/10"
+                  className="rounded-lg border-2 border-white/30 px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-white hover:bg-white/10"
                 >
                   Cancelar
                 </button>
@@ -454,7 +475,7 @@ export function LandingPage() {
           )}
 
           {contatoEnviado && (
-            <p className="mx-auto mt-6 max-w-md text-sm font-medium text-emerald-300">
+            <p className="mx-auto mt-6 max-w-md text-sm font-medium text-[var(--duo-green)]">
               Recebemos seu contato! Em breve alguém da nossa equipe vai falar com você.
             </p>
           )}
@@ -462,23 +483,27 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer id="footer" className="border-t border-slate-100 px-4 py-8 sm:px-6">
+      <footer id="footer" className="border-t border-[var(--duo-border-color)] px-4 py-8 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-2">
             <img src={logoFull} alt="Meu Prédio" className="h-8 w-auto" />
           </div>
-          <nav className="flex items-center gap-5 text-sm font-medium text-slate-600">
-            <a href="#recursos" className="hover:text-ink">
+          <nav className="flex items-center gap-5 text-sm font-medium text-[var(--duo-gray-light)]">
+            <a href="#recursos" className="hover:text-[var(--duo-footer-green)]">
               Recursos
             </a>
-            <a href="#como-funciona" className="hover:text-ink">
+            <a href="#como-funciona" className="hover:text-[var(--duo-footer-green)]">
               Como funciona
             </a>
-            <a href="#contato" onClick={() => setMostrarFormularioContato(true)} className="hover:text-ink">
+            <a
+              href="#contato"
+              onClick={() => setMostrarFormularioContato(true)}
+              className="hover:text-[var(--duo-footer-green)]"
+            >
               Contato
             </a>
           </nav>
-          <p className="text-xs text-slate-400">Desenvolvido por Renato Bueno - RBBrDev</p>
+          <p className="text-xs text-[var(--duo-nav-text)]">Desenvolvido por Renato Bueno - RBBrDev</p>
         </div>
       </footer>
 

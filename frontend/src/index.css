@@ -2,6 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Feather Bold - onlinewebfonts.com, licenciada sob CC BY 4.0 (atribuição obrigatória). */
+@font-face {
+  font-family: "Feather Bold";
+  src:
+    url("https://db.onlinewebfonts.com/t/14936bb7a4b6575fd2eee80a3ab52cc2.woff2") format("woff2"),
+    url("https://db.onlinewebfonts.com/t/14936bb7a4b6575fd2eee80a3ab52cc2.woff") format("woff"),
+    url("https://db.onlinewebfonts.com/t/14936bb7a4b6575fd2eee80a3ab52cc2.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Paleta usada apenas na landing page (não afeta o restante do app, que segue o tema brand/ink). */
+:root {
+  --duo-green: rgb(88, 204, 2);
+  --duo-green-hover: rgb(75, 178, 0);
+  --duo-green-shadow: #61b800;
+  --duo-dark-blue: rgb(16, 15, 62);
+  --duo-blue: rgb(28, 176, 246);
+  --duo-gray-text: rgb(75, 75, 75);
+  --duo-gray-light: rgb(119, 119, 119);
+  --duo-border-color: rgb(229, 229, 229);
+  --duo-nav-text: rgb(175, 175, 175);
+  --duo-footer-green: #4ec604;
+  --duo-red: #ff4b4b;
+  --duo-orange: #ff9600;
+  --duo-golden: #ffc800;
+}
+
 html,
 body,
 #root {
@@ -10,4 +39,14 @@ body,
 
 body {
   @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+/* Botão 3D no estilo Duolingo: sombra sólida que "recolhe" ao clicar. */
+.btn-duo-3d {
+  box-shadow: 0 4px 0 0 var(--btn-duo-shadow, var(--duo-green-shadow));
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.15s ease;
+}
+.btn-duo-3d:active {
+  box-shadow: 0 0 0 0 var(--btn-duo-shadow, var(--duo-green-shadow));
+  transform: translateY(4px);
 }
