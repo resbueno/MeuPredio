@@ -245,6 +245,102 @@ def test_autocadastro_com_unidade_de_outro_predio_retorna_404(client, db_session
     assert response.status_code == 404
 
 
+def test_autocadastro_rejeita_segundo_proprietario_da_mesma_unidade(client, db_session):
+    predio = make_predio(db_session)
+    unidade = make_unidade(db_session, predio)
+    admin = make_user(db_session, email="admin.p9@test.local", role=RoleEnum.ADMINISTRADOR)
+    convite = client.post(f"/predios/{predio.id}/convite", headers=auth_header(admin)).json()
+
+    primeiro = client.post(
+        f"/predios/convite/{convite['token']}/cadastro",
+        json={
+            "email": "dono1@test.dev",
+            "password": "SenhaForte123!",
+            "full_name": "Primeiro Dono",
+            "role": "proprietario",
+            "unidade_ids": [unidade.id],
+        },
+    )
+    assert primeiro.status_code == 201
+
+    segundo = client.post(
+        f"/predios/convite/{convite['token']}/cadastro",
+        json={
+            "email": "dono2@test.dev",
+            "password": "SenhaForte123!",
+            "full_name": "Segundo Dono",
+            "role": "proprietario",
+            "unidade_ids": [unidade.id],
+        },
+    )
+    assert segundo.status_code == 409
+
+
+def test_autocadastro_rejeita_segundo_morador_da_mesma_unidade(client, db_session):
+    predio = make_predio(db_session)
+    unidade = make_unidade(db_session, predio)
+    admin = make_user(db_session, email="admin.p10@test.local", role=RoleEnum.ADMINISTRADOR)
+    convite = client.post(f"/predios/{predio.id}/convite", headers=auth_header(admin)).json()
+
+    primeiro = client.post(
+        f"/predios/convite/{convite['token']}/cadastro",
+        json={
+            "email": "morador1@test.dev",
+            "password": "SenhaForte123!",
+            "full_name": "Primeiro Morador",
+            "role": "morador",
+            "unidade_ids": [unidade.id],
+        },
+    )
+    assert primeiro.status_code == 201
+
+    segundo = client.post(
+        f"/predios/convite/{convite['token']}/cadastro",
+        json={
+            "email": "morador2@test.dev",
+            "password": "SenhaForte123!",
+            "full_name": "Segundo Morador",
+            "role": "morador",
+            "unidade_ids": [unidade.id],
+        },
+    )
+    assert segundo.status_code == 409
+
+
+def test_autocadastro_permite_proprietario_e_morador_na_mesma_unidade(client, db_session):
+    """A exclusividade é por papel: uma unidade pode ter um proprietário E
+    um morador ao mesmo tempo (são pessoas e papéis diferentes) - só não
+    pode haver DOIS proprietários ou DOIS moradores na mesma unidade."""
+    predio = make_predio(db_session)
+    unidade = make_unidade(db_session, predio)
+    admin = make_user(db_session, email="admin.p11@test.local", role=RoleEnum.ADMINISTRADOR)
+    convite = client.post(f"/predios/{predio.id}/convite", headers=auth_header(admin)).json()
+
+    dono = client.post(
+        f"/predios/convite/{convite['token']}/cadastro",
+        json={
+            "email": "dono3@test.dev",
+            "password": "SenhaForte123!",
+            "full_name": "Dono",
+            "role": "proprietario",
+            "unidade_ids": [unidade.id],
+        },
+    )
+    assert dono.status_code == 201
+
+    morador = client.post(
+        f"/predios/convite/{convite['token']}/cadastro",
+        json={
+            "email": "morador3@test.dev",
+            "password": "SenhaForte123!",
+            "full_name": "Morador",
+            "role": "morador",
+            "unidade_ids": [unidade.id],
+        },
+    )
+    assert morador.status_code == 201
+
+
 def test_revogar_convite_invalida_cadastro_seguinte(client, db_session):
     admin = make_user(db_session, email="admin.p7@test.local", role=RoleEnum.ADMINISTRADOR)
     predio = make_predio(db_session)

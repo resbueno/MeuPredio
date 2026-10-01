@@ -49,7 +49,13 @@ export function Cadastro() {
     onSuccess: () => setSucesso(true),
     onError: (err) => {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
-        setServerError("Já existe um cadastro com este e-mail neste prédio.");
+        // 409 cobre tanto e-mail duplicado quanto "unidade já tem
+        // proprietário/morador cadastrado" - a mensagem do backend já é
+        // específica o bastante para mostrar direto ao usuário.
+        const detail = err.response.data?.detail;
+        setServerError(
+          typeof detail === "string" ? detail : "Já existe um cadastro com este e-mail neste prédio."
+        );
       } else {
         setServerError("Não foi possível concluir o cadastro. Verifique os dados e tente novamente.");
       }

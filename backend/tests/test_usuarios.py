@@ -304,6 +304,80 @@ def test_proprietario_pode_ter_mais_de_uma_unidade(client, db_session):
     assert sorted(response.json()["unidade_ids"]) == sorted([unidade1.id, unidade2.id])
 
 
+def test_admin_nao_pode_criar_segundo_proprietario_na_mesma_unidade(client, db_session):
+    predio = make_predio(db_session)
+    unidade = make_unidade(db_session, predio)
+    admin = make_user(db_session, email="admin8@test.local", role=RoleEnum.ADMINISTRADOR)
+    make_user(db_session, email="dono1@test.local", role=RoleEnum.PROPRIETARIO, predio=predio, unidades=[unidade])
+
+    response = client.post(
+        "/usuarios",
+        json={
+            "email": "dono2@test.local",
+            "full_name": "Segundo Dono",
+            "role": "proprietario",
+            "password": "SenhaForte1234!",
+            "predio_id": predio.id,
+            "unidade_ids": [unidade.id],
+        },
+        headers=auth_header(admin),
+    )
+    assert response.status_code == 409
+
+
+def test_admin_nao_pode_criar_segundo_morador_na_mesma_unidade(client, db_session):
+    predio = make_predio(db_session)
+    unidade = make_unidade(db_session, predio)
+    admin = make_user(db_session, email="admin9@test.local", role=RoleEnum.ADMINISTRADOR)
+    make_user(db_session, email="morador1@test.local", role=RoleEnum.MORADOR, predio=predio, unidades=[unidade])
+
+    response = client.post(
+        "/usuarios",
+        json={
+            "email": "morador2@test.local",
+            "full_name": "Segundo Morador",
+            "role": "morador",
+            "password": "SenhaForte1234!",
+            "predio_id": predio.id,
+            "unidade_ids": [unidade.id],
+        },
+        headers=auth_header(admin),
+    )
+    assert response.status_code == 409
+
+
+def test_atualizar_usuario_para_unidade_com_proprietario_retorna_409(client, db_session):
+    predio = make_predio(db_session)
+    unidade = make_unidade(db_session, predio)
+    admin = make_user(db_session, email="admin10@test.local", role=RoleEnum.ADMINISTRADOR)
+    make_user(db_session, email="dono3@test.local", role=RoleEnum.PROPRIETARIO, predio=predio, unidades=[unidade])
+    outro_dono = make_user(db_session, email="dono4@test.local", role=RoleEnum.PROPRIETARIO, predio=predio)
+
+    response = client.patch(
+        f"/usuarios/{outro_dono.id}",
+        json={"unidade_ids": [unidade.id]},
+        headers=auth_header(admin),
+    )
+    assert response.status_code == 409
+
+
+def test_atualizar_role_para_proprietario_com_conflito_na_unidade_retorna_409(client, db_session):
+    """Trocar só o `role` (sem mexer em unidade_ids) também precisa revalidar
+    a exclusividade, já que o usuário mantém as unidades que já tinha."""
+    predio = make_predio(db_session)
+    unidade = make_unidade(db_session, predio)
+    admin = make_user(db_session, email="admin11@test.local", role=RoleEnum.ADMINISTRADOR)
+    make_user(db_session, email="dono5@test.local", role=RoleEnum.PROPRIETARIO, predio=predio, unidades=[unidade])
+    morador = make_user(db_session, email="morador4@test.local", role=RoleEnum.MORADOR, predio=predio, unidades=[unidade])
+
+    response = client.patch(
+        f"/usuarios/{morador.id}",
+        json={"role": "proprietario"},
+        headers=auth_header(admin),
+    )
+    assert response.status_code == 409
+
+
 def test_log_auditoria_e_imutavel_via_trigger_de_banco(db_session):
     """O trigger de banco (migration 0002) deve bloquear UPDATE/DELETE mesmo
     quando o código tenta alterar a linha diretamente via ORM, contornando

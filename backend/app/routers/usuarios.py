@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import model_to_audit_dict, registrar_log
 from app.core.dependencies import get_current_user, get_db, require_role, resolver_predio_id
+from app.core.ocupacao_unidade import validar_unicidade_papel_por_unidade
 from app.core.security import hash_password
 from app.models.enums import RoleEnum
 from app.models.unidade import Unidade
@@ -85,6 +86,7 @@ def criar_usuario(
     else:
         predio_id = resolver_predio_id(current_user, payload.predio_id)
         unidades = _validar_unidades(db, payload.unidade_ids, predio_id)
+        validar_unicidade_papel_por_unidade(db, payload.role, unidades)
 
     email_em_uso = (
         db.query(Usuario)
@@ -227,6 +229,8 @@ def atualizar_usuario(
         usuario.unidades = _validar_unidades(db, campos_enviados["unidade_ids"], usuario.predio_id)
     if "role" in campos_enviados:
         usuario.role = campos_enviados["role"]
+    if ("unidade_ids" in campos_enviados or "role" in campos_enviados) and usuario.role != RoleEnum.ADMINISTRADOR:
+        validar_unicidade_papel_por_unidade(db, usuario.role, usuario.unidades, usuario_id_excluir=usuario.id)
     if "papeis_extra" in campos_enviados:
         usuario.papeis_extra = [
             UsuarioPapelExtra(role=papel, created_by=current_user.id)

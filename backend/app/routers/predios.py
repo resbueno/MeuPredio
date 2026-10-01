@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.audit import model_to_audit_dict, registrar_log
 from app.core.crypto import encrypt_secret
 from app.core.dependencies import get_db, require_role
+from app.core.ocupacao_unidade import validar_unicidade_papel_por_unidade
 from app.core.security import hash_password
 from app.core.viacep import (
     CepInvalidoError,
@@ -498,11 +499,14 @@ def autocadastro_via_convite(
             detail="Uma ou mais unidades informadas não pertencem a este prédio.",
         )
 
+    role = RoleEnum(payload.role)
+    validar_unicidade_papel_por_unidade(db, role, unidades)
+
     usuario = Usuario(
         email=payload.email,
         hashed_password=hash_password(payload.password),
         full_name=payload.full_name,
-        role=RoleEnum(payload.role),
+        role=role,
         predio_id=convite.predio_id,
         unidades=unidades,
     )
