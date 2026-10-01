@@ -2,8 +2,8 @@ import { lazy, Suspense, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import logoFull from "../assets/logo-full.png";
 import logoIcon from "../assets/logo-icon.png";
+import fotoHero from "../assets/landing-hero.jpg";
 import { enviarContato } from "../api/contato";
-import ApogeeHero from "../components/landing/ApogeeHero";
 
 // Prévia carregada sob demanda: traz junto as páginas reais + o backend falso.
 const DemoTour = lazy(() =>
@@ -149,14 +149,118 @@ export function LandingPage() {
         <div className="absolute -bottom-24 -right-16 h-80 w-80 rounded-full bg-[var(--duo-blue)]/10 blur-3xl" />
       </div>
 
-      <ApogeeHero
-        onConhecerAgora={() => setMostrarDemo(true)}
-        onFalarComEquipe={() => {
-          setMostrarFormularioContato(true);
-          document.getElementById("contato")?.scrollIntoView({ behavior: "smooth" });
-        }}
-        onEntrar={irParaLogin}
-      />
+      {/* Navbar */}
+      <header className="sticky top-0 z-20 h-16 border-b border-[var(--duo-border-color)] bg-white/90 backdrop-blur">
+        <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-2">
+            <img src={logoIcon} alt="" className="h-8 w-auto" />
+            <span className="font-feather text-lg tracking-tight text-[var(--duo-dark-blue)]">
+              Meu<span className="text-[var(--duo-green)]">Prédio</span>
+            </span>
+          </div>
+          <nav className="hidden items-center gap-1 text-[13px] font-bold uppercase tracking-[0.5px] text-[var(--duo-gray-light)] md:flex">
+            <a
+              href="#recursos"
+              className="rounded-md px-3 py-2 transition-colors hover:bg-[var(--duo-green)]/10 hover:text-[var(--duo-green)]"
+            >
+              Recursos
+            </a>
+            <a
+              href="#como-funciona"
+              className="rounded-md px-3 py-2 transition-colors hover:bg-[var(--duo-green)]/10 hover:text-[var(--duo-green)]"
+            >
+              Como funciona
+            </a>
+            <a
+              href="#contato"
+              onClick={() => setMostrarFormularioContato(true)}
+              className="rounded-md px-3 py-2 transition-colors hover:bg-[var(--duo-green)]/10 hover:text-[var(--duo-green)]"
+            >
+              Contato
+            </a>
+          </nav>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={irParaLogin}
+              className="hidden items-center gap-1.5 rounded-lg border-2 border-[var(--duo-border-color)] px-3.5 py-2 text-sm font-bold text-[var(--duo-dark-blue)] hover:bg-slate-50 sm:flex"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5">
+                <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="2" />
+                <path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" strokeWidth="2" />
+              </svg>
+              Área do cliente
+            </button>
+            <button
+              type="button"
+              onClick={() => setMostrarDemo(true)}
+              className="btn-duo-3d [--btn-duo-shadow:var(--duo-green-shadow)] h-9 rounded-[10px] bg-[var(--duo-green)] px-4 text-[13px] font-bold uppercase tracking-wide text-white hover:bg-[var(--duo-green-hover)]"
+            >
+              Conhecer agora
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section>
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:items-center lg:py-20">
+          <div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--duo-green)]/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[var(--duo-green-hover)]">
+              <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+                <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              Gestão condominial em um só lugar
+            </span>
+            <h1 className="mt-4 font-feather text-3xl leading-tight tracking-tight text-[var(--duo-dark-blue)] sm:text-4xl lg:text-[52px]">
+              A gestão do seu prédio, <span className="text-[var(--duo-green)]">mais simples e inteligente</span>.
+            </h1>
+            <p className="mt-4 max-w-[520px] text-base leading-[1.5] text-[var(--duo-gray-light)] sm:text-[17px]">
+              Portal da transparência, boletos com leitura por IA, avisos, reuniões digitais,
+              reserva de espaços e portaria com controle de visitantes - tudo em um só sistema,
+              para uma rotina mais organizada, segura e eficiente.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={irParaLogin}
+                className="btn-duo-3d [--btn-duo-shadow:var(--duo-green-shadow)] inline-flex h-12 items-center gap-1.5 rounded-xl bg-[var(--duo-green)] px-6 text-[15px] font-bold uppercase tracking-wide text-white hover:bg-[var(--duo-green-hover)]"
+              >
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Conheça o Meu Prédio
+              </button>
+              <a
+                href="#como-funciona"
+                className="btn-duo-3d [--btn-duo-shadow:var(--duo-border-color)] inline-flex h-12 items-center gap-1.5 rounded-xl border-2 border-[var(--duo-border-color)] bg-white px-6 text-[15px] font-bold uppercase tracking-wide text-[var(--duo-blue)] hover:bg-slate-50"
+              >
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+                  <path d="M10 9l5 3-5 3V9z" fill="currentColor" />
+                </svg>
+                Ver como funciona
+              </a>
+            </div>
+          </div>
+
+          <div className="relative">
+            <img
+              src={fotoHero}
+              alt="Fachada de um condomínio residencial à noite, com janelas acesas"
+              className="aspect-[4/3] w-full rounded-2xl object-cover shadow-xl"
+            />
+            <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-lg backdrop-blur">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              Seu condomínio conectado
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Recursos */}
       <section id="recursos" className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
